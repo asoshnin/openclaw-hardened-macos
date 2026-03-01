@@ -1,0 +1,14 @@
+# ==============================================================================
+# OpenClaw + Ollama: macOS pf Anchor Ruleset
+# ==============================================================================
+# Description: This ruleset enforces a strict loopback-only policy for local 
+# LLM infrastructure. It acts as a defense-in-depth failsafe in case the 
+# application-level host bindings (127.0.0.1) fail or are misconfigured.
+# ==============================================================================
+
+# Allow explicitly routed loopback traffic to OpenClaw (3000) and Ollama (11434)
+pass in quick on lo0 proto tcp from 127.0.0.1 to 127.0.0.1 port { 3000, 11434 }
+pass in quick on lo0 proto tcp from ::1 to ::1 port { 3000, 11434 }
+
+# Block ALL other inbound TCP traffic to these service ports from any interface
+block in quick proto tcp from any to any port { 3000, 11434 }

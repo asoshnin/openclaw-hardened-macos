@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# OpenClaw Secure Token Generator
+# OpenClaw Secure Token Generator (Hardened)
 # ==============================================================================
 # Description: Securely generates a 256-bit authentication token for OpenClaw
 # and writes it to the configuration file. Uses atomic directory creation and 
@@ -19,7 +19,7 @@ if ! command -v jq &> /dev/null; then
 fi
 
 echo "🔒 Enforcing secure directory permissions..."
-# RED TEAM FIX: Atomic creation with 700 permissions to prevent TOCTOU race condition
+# RED TEAM FIX: Atomic creation with 700 permissions
 mkdir -m 700 -p "$CONFIG_DIR"
 
 echo "🔑 Generating 256-bit authentication token..."
@@ -37,10 +37,16 @@ echo "🔑 Generating 256-bit authentication token..."
         echo '{"gateway": {"auth": {"token": ""}}}' > "$CONFIG_FILE"
     fi
 
-    # Update JSON safely using jq by passing the token as an environment argument
-    jq --arg t "$AUTH_TOKEN_NEW" '.gateway.auth.token = $t' \
-      "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
+    # SECURE INJECTION: Export to local subshell memory, do NOT pass via argv
+    export AUTH_TOKEN_NEW
+    
+    # Update JSON safely. jq reads directly from the protected memory space
+    jq '.gateway.auth.token = env.AUTH_TOKEN_NEW' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp"
+    
+    # Wipe the variable from memory immediately
+    unset AUTH_TOKEN_NEW
       
+    # Atomic replacement
     mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
     
     echo "✅ Token successfully generated and injected into: $CONFIG_FILE"

@@ -452,61 +452,75 @@ openclaw --version || echo "⚠️ openclaw not found — check PATH and Gatekee
 mkdir -p ~/.openclaw
 chmod 700 ~/.openclaw
 ```
-
 ### **9.2 Generate Auth Token and Write Config** {#9.2-generate-auth-token-and-write-config}
 
-The token is generated, written to the config file, and then the variable is unset — all without echoing to stdout or shell history.
+⚠️ **SECURITY WARNING: Do not pass tokens via command-line arguments.** To prevent process-list credential leakage, you must use kernel-protected memory spaces or standard input streams to inject tokens.
 
-```shell
+Choose one of the two methods below to safely generate your OpenClaw configuration:
+
+**Option A: Use the Automation Script (Recommended for existing configs)**
+Run the hardened token generator included in the repository. It uses a `umask 077` subshell and environment variable injection to safely apply a token without exposing it to macOS process lists.
+
+```bash
+chmod +x scripts/token-generator.sh
+./scripts/token-generator.sh
+
+```
+
+*(Note: If you use the automation script on a fresh install, it will only create a minimal JSON scaffold. You will need to manually add your agent and tool profiles later.)*
+
+**Option B: Full Configuration Generation (Red-Team Approved)**
+If you are setting this up for the first time, run the block below. It uses a restricted subshell and Python to read the token directly from the standard input stream (`stdin`), ensuring the token never touches the `argv` process list while writing the complete agent configuration.
+
+```bash
 (
- umask 077
+  # Enforce strict 600 permissions for files created in this subshell
+  umask 077
+  mkdir -m 700 -p ~/.openclaw
 
- # Generate a 256-bit hex token
- AUTH_TOKEN="$(openssl rand -hex 32)"
+  # Generate a secure 256-bit hex token
+  AUTH_TOKEN="$(openssl rand -hex 32)"
 
- # Write config via Python to avoid heredoc variable expansion
- # appearing in process listings
-python3 -c "
+  # Write full config via Python. The token is passed via stdin (<<<)
+  # to prevent it from appearing in ps/top process listings.
+  python3 -c "
 import json, os, sys
 
 config = {
- 'gateway': {
- 'host': '127.0.0.1',
- 'port': 3000,
- 'auth': {
- 'token': sys.stdin.read().strip()
- }
- },
- 'tools': {
- 'profile': 'minimal',
- 'mode': 'deny',
- 'deny': ['browser', 'shell', 'fs.write', 'system.run']
- },
- 'agents': {
- 'defaults': {
- 'model': {
- 'name': 'llama3:8b',
- 'cloud': {
- 'enabled': True,
- 'provider': 'moonshot-ai',
- 'model': 'kimi-k2.5'
- }
- }
- }
- }
+  'gateway': {
+    'host': '127.0.0.1',
+    'port': 3000,
+    'auth': {
+      'token': sys.stdin.read().strip()
+    }
+  },
+  'tools': {
+    'profile': 'minimal',
+    'mode': 'deny',
+    'deny': ['browser', 'shell', 'fs.write', 'system.run']
+  },
+  'agents': {
+    'defaults': {
+      'model': {
+        'name': 'llama3:8b',
+        'cloud': {
+          'enabled': True,
+          'provider': 'moonshot-ai',
+          'model': 'kimi-k2.5'
+        }
+      }
+    }
+  }
 }
 
 path = os.path.expanduser('~/.openclaw/openclaw.json')
 with open(path, 'w') as f:
- json.dump(config, f, indent=2)
-os.chmod(path, 0o600)
+  json.dump(config, f, indent=2)
 " <<< "$AUTH_TOKEN"
 
- # If you need the token for another system, copy to clipboard (no newline):
- # echo -n "$AUTH_TOKEN" | pbcopy
- # Then paste where needed. The token leaves no trace in shell history.
+  echo "✅ Complete configuration and secure token written to ~/.openclaw/openclaw.json"
 )
-# AUTH_TOKEN is now out of scope (subshell exited)
+
 ```
 
 ### **9.3 Verify Configuration** {#9.3-verify-configuration}
@@ -1184,38 +1198,41 @@ grep openclaw-ollama /etc/pf.conf
 
 ---
 
-## **19\. Security Audit Checklist** {#19.-security-audit-checklist}
+## **19. Security Audit Checklist** {#19.-security-audit-checklist}
 
-Use this before considering the setup production-ready:
+Use this before considering the setup production-ready.
 
-First, run OpenClaw's built-in automated security audit to check for dangerous configurations, weak file permissions, and exposed ports.
+⚠️ **SECURITY WARNING: Do not rely solely on application-level self-audits or standard `lsof` commands.** An application cannot reliably audit its own containment, and standard port queries can return false positives from outbound connections. You must verify the architectural containment from the outside using deterministic state verification.
 
-```shell
+### Phase 1: Architectural Validation (Required)
+Run the repository's automated auditing script to mathematically verify the integrity of your 4-layer architecture (Application Bindings, Firewall Anchors, and Filesystem Permissions).
+
+```bash
+chmod +x scripts/post-install-verify.sh
+./scripts/post-install-verify.sh
+
+```
+
+### Phase 2: Application-Level Audit & Sanity Checks
+
+Once the architectural blast radius is secured by the script above, run OpenClaw's built-in audit to check for internal software misconfigurations and verify your operational parameters.
+
+```bash
 openclaw security audit --deep
-```
-
-If vulnerabilities are found, you can attempt automatic remediation:
-
-```shell
-openclaw security audit --fix
 
 ```
 
-*(Note: Automated fixes address common software issues; they do not replace the manual architectural validation below).*
+*(Note: If vulnerabilities are found, you can attempt automatic remediation with `openclaw security audit --fix`. However, these automated fixes address common software issues; they do NOT replace the manual architectural validation in Phase 1).*
 
-- [ ] `uname -m` returns `arm64` (Apple Silicon confirmed)  
-- [ ] `df -h ~` shows $$\\geq 20$$ GB free  
-- [ ] Ollama listening on `127.0.0.1:11434` or `[::1]:11434` **only** (verified with `lsof`)  
-- [ ] OpenClaw listening on `127.0.0.1:3000` or `[::1]:3000` **only** (verified with `lsof`)  
-- [ ] `~/.openclaw/openclaw.json` has permissions `600` (verified with `ls -la`)  
-- [ ] `~/.openclaw/` directory has permissions `700`  
-- [ ] pf anchor loaded and contains rules for ports 3000 and 11434 (verified with `pfctl -a openclaw-ollama -s rules`)  
-- [ ] `ollama list` shows both local models (`llama3:8b`, `deepseek-coder-v2:lite`)  
-- [ ] `curl http://127.0.0.1:11434/api/version` responds successfully  
-- [ ] Ollama logs location is `~/Library/Logs/Ollama/` (not world-readable `/tmp/`)  
-- [ ] Auth token in `~/.openclaw/openclaw.json` is ≥ 64 hex characters (256 bits)  
-- [ ] A full `df -h ~` is taken after all model pulls (confirm disk space is acceptable)  
-- [ ] You have verified OpenClaw's GitHub repository and maintainer identity independently
+**Manual Verification Items:**
+
+* [ ] `uname -m` returns `arm64` (Apple Silicon confirmed)
+* [ ] `df -h ~` shows >= 20 GB free after all model pulls
+* [ ] `ollama list` shows both local models (`llama3:8b`, `deepseek-coder-v2:lite`)
+* [ ] `curl http://127.0.0.1:11434/api/version` responds successfully
+* [ ] Ollama logs location is `~/Library/Logs/Ollama/` (not world-readable `/tmp/`)
+* [ ] Auth token in `~/.openclaw/openclaw.json` is exactly 64 hex characters (256 bits)
+* [ ] You have verified OpenClaw's GitHub repository and maintainer identity independently
 
 ---
 

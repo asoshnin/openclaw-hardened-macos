@@ -1,9 +1,9 @@
 #!/bin/bash
 # ==============================================================================
-# OpenClaw Hardening Verification Script
+# OpenClaw Hardening Verification Script (v3.1)
 # ==============================================================================
-# Description: Automates the auditing of service bindings, pf firewall rules, 
-# and sensitive file permissions to verify the defense-in-depth posture.
+# Description: Automates the deterministic auditing of service bindings, 
+# pf firewall rules, and strict POSIX permissions.
 # ==============================================================================
 
 RED='\033[0;31m'
@@ -14,21 +14,23 @@ NC='\033[0m' # No Color
 echo -e "${YELLOW}Starting OpenClaw Hardening Verification...${NC}\n"
 
 # 1. Verify Service Bindings (Application Layer)
-echo -e "🔎 ${YELLOW}Checking Service Bindings...${NC}"
+echo -e "🔎 ${YELLOW}Checking Service Bindings (LISTEN state only)...${NC}"
 
 # Check OpenClaw (Port 3000)
-if lsof -i :3000 | grep -q "\*:3000"; then
+OPENCLAW_LISTEN=$(lsof -iTCP:3000 -sTCP:LISTEN -Pn 2>/dev/null)
+if echo "$OPENCLAW_LISTEN" | grep -q "\*:3000"; then
     echo -e "${RED}❌ FAILED:${NC} OpenClaw is listening on all interfaces (*:3000). It must be restricted to localhost."
-elif lsof -i :3000 | grep -E -q "(127\.0\.0\.1|localhost|::1):3000"; then
+elif echo "$OPENCLAW_LISTEN" | grep -E -q "(127\.0\.0\.1|::1):3000"; then
     echo -e "${GREEN}✅ PASSED:${NC} OpenClaw is safely bound to localhost."
 else
     echo -e "${YELLOW}⚠️  WARNING:${NC} OpenClaw (port 3000) does not appear to be running."
 fi
 
 # Check Ollama (Port 11434)
-if lsof -i :11434 | grep -q "\*:11434"; then
-    echo -e "${RED}❌ FAILED:${NC} Ollama is listening on all interfaces (*:11434). Update OLLAMA_HOST."
-elif lsof -i :11434 | grep -E -q "(127\.0\.0\.1|localhost|::1):11434"; then
+OLLAMA_LISTEN=$(lsof -iTCP:11434 -sTCP:LISTEN -Pn 2>/dev/null)
+if echo "$OLLAMA_LISTEN" | grep -q "\*:11434"; then
+    echo -e "${RED}❌ FAILED:${NC} Ollama is listening on all interfaces (*:11434). Update launchd plist."
+elif echo "$OLLAMA_LISTEN" | grep -E -q "(127\.0\.0\.1|::1):11434"; then
     echo -e "${GREEN}✅ PASSED:${NC} Ollama is safely bound to localhost."
 else
     echo -e "${YELLOW}⚠️  WARNING:${NC} Ollama (port 11434) does not appear to be running."
@@ -36,18 +38,18 @@ fi
 echo ""
 
 # 2. Verify pf Firewall (Firewall Layer)
-echo -e "🔎 ${YELLOW}Checking pf Firewall Status...${NC}"
-if sudo pfctl -s info | grep -q "Status: Enabled"; then
+echo -e "🔎 ${YELLOW}Checking pf Firewall Status & Anchor Integrity...${NC}"
+if sudo pfctl -s info 2>/dev/null | grep -q "Status: Enabled"; then
     echo -e "${GREEN}✅ PASSED:${NC} macOS pf firewall is Enabled."
 else
     echo -e "${RED}❌ FAILED:${NC} macOS pf firewall is DISABLED. Run 'sudo pfctl -E'."
 fi
 
-# Check if the anchor is loaded
-if sudo pfctl -s rules | grep -q "openclaw"; then
-    echo -e "${GREEN}✅ PASSED:${NC} OpenClaw pf anchor rules are loaded."
+# Check if the anchor contains the required loopback rules
+if sudo pfctl -a openclaw-ollama -s rules 2>/dev/null | grep -q "127.0.0.1"; then
+    echo -e "${GREEN}✅ PASSED:${NC} OpenClaw pf anchor rules are loaded and populated."
 else
-    echo -e "${RED}❌ FAILED:${NC} OpenClaw pf anchor is not loaded in /etc/pf.conf."
+    echo -e "${RED}❌ FAILED:${NC} OpenClaw pf anchor is empty or not loaded."
 fi
 echo ""
 

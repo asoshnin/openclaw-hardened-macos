@@ -15,9 +15,6 @@
     <dict>
         <key>OLLAMA_HOST</key>
         <string>127.0.0.1:11434</string>
-        
-        <key>OLLAMA_MODELS</key>
-        <string>~/.ollama/models</string>
     </dict>
     
     <key>RunAtLoad</key>
@@ -27,8 +24,8 @@
     <true/>
     
     <key>StandardErrorPath</key>
-    <string>~/Library/Logs/ollama/stderr.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/ollama/stderr.log</string>
     <key>StandardOutPath</key>
-    <string>~/Library/Logs/ollama/stdout.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/ollama/stdout.log</string>
 </dict>
 </plist>

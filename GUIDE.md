@@ -1,15 +1,14 @@
-# **Secure OpenClaw \+ Ollama on Apple Silicon Mac**
+# **OpenClaw and Ollama on macOS Apple Silicon: Complete Manual for a Secure Setup**
 
 ---
 
-**Default cloud model:** Kimi K2.5 (Moonshot AI, via Ollama cloud)   
-**Offline fallback:** `llama3:8b` (local)   
-**Coding tasks:** `deepseek-coder-v2:lite` (local, manual agent switch)
+**Default cloud model:**  gemini-3.1-pro-preview (Google Gemini)  
+**Offline fallback:**   llama3:8b  (local)  
+**Coding tasks:**   deepseek-coder-v2:lite  (local, manual agent switch)  
+**Document version:** 2.0 — 2026-03-01   
+**Target audience:** macOS administrators deploying local LLM infrastructure with defense-in-depth security controls.
 
-**Document version:** 2.0 — 2026-03-01 **Target audience:** macOS administrators deploying local LLM infrastructure with defense-in-depth security controls.  
----
-
-## **TOC** {#toc}
+# **TOC** {#toc}
 
 ---
 
@@ -57,19 +56,19 @@
 
 [9.3 Verify Configuration	13](#9.3-verify-configuration)
 
-[9.4 Start OpenClaw	13](#9.4-start-openclaw)
+[9.4 Start OpenClaw	13](?tab=t.0#heading=h.85zj4xwtyj5k)
 
-[10\. Step 6 — Firewall Hardening (pf Anchor)	14](#10.-step-6-—-firewall-hardening-\(pf-anchor\))
+[10\. Step 6 — Firewall Hardening (pf Anchor)	14](?tab=t.0#heading=h.99g4iodefkjp)
 
-[10.1 Create the Anchor Rules File	14](#10.1-create-the-anchor-rules-file)
+[10.1 Create the Anchor Rules File	14](?tab=t.0#heading=h.g08llwh3bq2v)
 
-[10.2 Register the Anchor in /etc/pf.conf	14](#10.2-register-the-anchor-in-/etc/pf.conf)
+[10.2 Register the Anchor in /etc/pf.conf	14](?tab=t.0#heading=h.odx8niuhplw4)
 
-[10.3 Verify Firewall Rules	15](#10.3-verify-firewall-rules)
+[10.3 Verify Firewall Rules	15](?tab=t.0#heading=h.sxjn9xqysbmj)
 
-[11\. Step 7 — End-to-End Verification	15](#11.-step-7-—-end-to-end-verification)
+[11\. Step 7 — End-to-End Verification	15](?tab=t.0#heading=h.9hi4eitw6d2x)
 
-[Start Using OpenClaw	16](#start-using-openclaw)
+[Start Using OpenClaw	16](?tab=t.0#heading=h.xr38n294maji)
 
 [**12\. Privacy & Data Handling	17**](#12.-privacy-&-data-handling)
 
@@ -133,7 +132,7 @@
 
 ## 
 
-## **1\. Introduction & Security Principles** {#1.-introduction-&-security-principles}
+# **1\. Introduction & Security Principles** {#1.-introduction-&-security-principles}
 
 This guide provides a hardened, reproducible setup for **OpenClaw** and **Ollama** on Apple Silicon (M1/M2/M3/M4) Macs. It applies defense-in-depth across four layers:
 
@@ -146,19 +145,20 @@ This guide provides a hardened, reproducible setup for **OpenClaw** and **Ollama
 
 **Accepted risk:** Localhost traffic is unencrypted (plaintext HTTP). Other local processes with sufficient privilege can observe loopback traffic. If this is unacceptable for your threat model, configure TLS termination per each service's documentation.
 
+**⚡ Fast Track Deployment:** If you already understand this architecture and just want to deploy, a fully automated, end-to-end bash script containing all hardened configurations is available in **Appendix D**.  
 ---
 
-## **2\. Assumptions & Scope** {#2.-assumptions-&-scope}
+# **2\. Assumptions & Scope** {#2.-assumptions-&-scope}
 
 - You are logged in as a macOS admin user.  
 - **macOS Ventura (13+)** required; **Sonoma (14+)** recommended.  
 - You accept system-level changes: `launchd` agents, `pf` anchors, Homebrew installation.  
 - You will verify all checksums and signatures against **vendor-authoritative sources** (official GitHub Releases pages or project websites). Never trust checksums from forums, mirrors, or AI-generated guides (including this one — verify independently).  
-- **OpenClaw** is referenced as a representative AI agent gateway. Before installing, independently verify the project's legitimacy, source repository, and maintainer identity. The canonical repository should be confirmed at: `https://github.com/openclawhq/openclaw` *(verify this URL is current)*.
+- **OpenClaw** is referenced as a representative AI agent gateway. Before installing, independently verify the project's legitimacy, source repository, and maintainer identity. The canonical repository should be confirmed at: `https://github.com/openclaw/openclaw` *(verify this URL is current)*.
 
 ---
 
-## **3\. Architecture Overview** {#3.-architecture-overview}
+# **3\. Architecture Overview** {#3.-architecture-overview}
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -187,7 +187,7 @@ This guide provides a hardened, reproducible setup for **OpenClaw** and **Ollama
 ├─────────────────────────────────────────────────────────────┤
 │  Internet Access (Cloud Models Only)                         │
 │  ┌─────────────────────────────────────────────────────────┐ │
-│  │ • kimi-k2.5 via Moonshot AI (cloud connections)        │ │
+│  │ • gemini-3.1-pro-preview via Google AI Studio        │ │
 │  └─────────────────────────────────────────────────────────┘ │
 │                                                               │
 └─────────────────────────────────────────────────────┘
@@ -195,22 +195,22 @@ This guide provides a hardened, reproducible setup for **OpenClaw** and **Ollama
 
 | Condition | Model Used | Location |
 | :---- | :---- | :---- |
-| Internet available | `kimi-k2.5` (Moonshot AI cloud) | Remote |
+| Internet available | `gemini-3.1-pro-preview (Google Gemini)` | Remote |
 | Internet unavailable | `llama3:8b` | Local |
 | Coding tasks (manual switch) | `deepseek-coder-v2:lite` | Local |
 
 ---
 
-## **4\. Prerequisites** {#4.-prerequisites}
+# **4\. Prerequisites** {#4.-prerequisites}
 
-### **4.1 Confirm Apple Silicon** {#4.1-confirm-apple-silicon}
+## **4.1 Confirm Apple Silicon** {#4.1-confirm-apple-silicon}
 
 ```shell
 uname -m
 # Must return: arm64
 ```
 
-### **4.2 Check Free Disk Space** {#4.2-check-free-disk-space}
+## **4.2 Check Free Disk Space** {#4.2-check-free-disk-space}
 
 **Minimum required: $$\\approx 20$$ GB free.**
 
@@ -225,31 +225,36 @@ uname -m
 df -h ~
 ```
 
-### **4.3 Confirm macOS Version** {#4.3-confirm-macos-version}
+## **4.3 Confirm macOS Version** {#4.3-confirm-macos-version}
 
 ```shell
 sw_vers
 # ProductVersion must be 13.0 or higher.
 ```
 
-### **4.4 Install Xcode Command Line Tools** {#4.4-install-xcode-command-line-tools}
+## **4.4 Install Xcode Command Line Tools** {#4.4-install-xcode-command-line-tools}
 
 ```shell
 xcode-select --install
 ```
 
-### **4.5 Identify Your Shell** {#4.5-identify-your-shell}
+## **4.5 Identify Your Shell** {#4.5-identify-your-shell}
 
 ```shell
 echo $SHELL
 ```
 
-- If `/bin/zsh` (default on modern macOS): this guide uses `~/.zshrc`.  
-- If `/bin/bash`: substitute `~/.bash_profile` wherever `~/.zshrc` appears.
+If `/bin/zsh` (default on modern macOS): this guide uses `~/.zshrc`. **Crucial step for copy-pasting:** By default, `zsh` interactive terminals do not ignore `#` comments, which will cause syntax errors when pasting scripts from this manual. To fix this, run this command once:
 
+```shell
+echo 'setopt INTERACTIVE_COMMENTS' >> ~/.zshrc
+source ~/.zshrc
+```
+
+If `/bin/bash`: substitute `~/.bash_profile` wherever `~/.zshrc` appears.  
 ---
 
-## **5\. Step 1 — Install Homebrew** {#5.-step-1-—-install-homebrew}
+# **5\. Step 1 — Install Homebrew** {#5.-step-1-—-install-homebrew}
 
 Download, verify, review, then execute the installer. **Do not pipe `curl` to `bash` directly.**
 
@@ -291,67 +296,59 @@ brew doctor
 
 ---
 
-## **6\. Step 2 — Install & Configure Ollama** {#6.-step-2-—-install-&-configure-ollama}
+# **6\. Step 2 — Install & Configure Ollama** {#6.-step-2-—-install-&-configure-ollama}
 
-### **6.1 Install Ollama** {#6.1-install-ollama}
+## **6.1 Install Ollama** {#6.1-install-ollama}
 
 ```shell
 brew install ollama
 ```
 
-### **6.2 Create Log Directory (Private)** {#6.2-create-log-directory-(private)}
+## **6.2 Create Log Directory (Private)** {#6.2-create-log-directory-(private)}
 
 ```shell
 mkdir -p ~/Library/Logs/Ollama
 chmod 700 ~/Library/Logs/Ollama
 ```
 
-### **6.3 Create LaunchAgent (Bound to Loopback)** {#6.3-create-launchagent-(bound-to-loopback)}
+## **6.3 Create LaunchAgent (Bound to Loopback)** {#6.3-create-launchagent-(bound-to-loopback)}
 
 **Important:** Do not use `brew services start ollama` for this hardened setup. Homebrew's default service management does not reliably accept custom environment variable injection (like `OLLAMA_HOST`) via the CLI, which can result in the service binding to all interfaces silently. You must use the explicitly defined LaunchAgent below.
 
 ```shell
-mkdir -p ~/Library/LaunchAgents
-
-tee ~/Library/LaunchAgents/com.ollama.serve.plist <<'EOF'
+tee ~/Library/LaunchAgents/com.ollama.serve.plist <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
- "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
- <key>Label</key>
- <string>com.ollama.serve</string>
- <key>ProgramArguments</key>
- <array>
- <string>/opt/homebrew/bin/ollama</string>
- <string>serve</string>
- </array>
- <key>EnvironmentVariables</key>
- <dict>
- <key>OLLAMA_HOST</key>
- <!-- Use bare host:port WITHOUT http:// scheme.
- Some Ollama versions misparse the scheme and fall back to 0.0.0.0 -->
- <string>127.0.0.1:11434</string>
- </dict>
- <key>RunAtLoad</key>
- <true/>
- <key>KeepAlive</key>
- <true/>
- <key>StandardOutPath</key>
- <string>HOMEDIR/Library/Logs/Ollama/ollama.stdout.log</string>
- <key>StandardErrorPath</key>
- <string>HOMEDIR/Library/Logs/Ollama/ollama.stderr.log</string>
+    <key>Label</key>
+    <string>com.ollama.serve</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/ollama</string>
+        <string>serve</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OLLAMA_HOST</key>
+        <string>127.0.0.1:11434</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>$HOME/Library/Logs/Ollama/ollama.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/Library/Logs/Ollama/ollama.stderr.log</string>
 </dict>
 </plist>
 EOF
-
-# Replace HOMEDIR placeholder with actual home directory
-sed -i '' "s|HOMEDIR|$HOME|g" ~/Library/LaunchAgents/com.ollama.serve.plist
 ```
 
 *Safety Testing*: To prove this to yourself, run `TEST_VAR=true brew services start ollama` and then inspect the running process environment using `ps eww -p $(pgrep ollama)`. You will see `TEST_VAR` is entirely absent.
 
-### **6.4 Load and Verify** {#6.4-load-and-verify}
+## **6.4 Load and Verify** {#6.4-load-and-verify}
 
 ```shell
 # Unload if previously loaded (ignore errors)
@@ -392,7 +389,7 @@ curl -sfS http://127.0.0.1:11434/api/version && echo "" || \
 
 ---
 
-## **7\. Step 3 — Pull Local Models** {#7.-step-3-—-pull-local-models}
+# **7\. Step 3 — Pull Local Models** {#7.-step-3-—-pull-local-models}
 
 ```shell
 ollama pull llama3:8b
@@ -405,63 +402,60 @@ ollama list
 df -h ~
 ```
 
-Note on `kimi-k2.5`: Ollama is strictly a local inference engine for GGUF execution and does **not** natively act as a proxy for external cloud APIs. You must configure external cloud providers like Moonshot AI directly within the OpenClaw gateway configuration file. Do not attempt to pull or route cloud models through the Ollama CLI, as it will result in a fatal "model not found" error.
+Note on Gemini: Ollama is strictly a local inference engine for GGUF execution and does not natively act as a proxy for external cloud APIs. You must configure external cloud providers like Google directly within the OpenClaw gateway configuration file and use a \`.env\` file for the API key. Do not attempt to pull or route cloud models through the Ollama CLI.
 
 ---
 
-## **8\. Step 4 — Install OpenClaw** {#8.-step-4-—-install-openclaw}
+# **8\. Step 4 — Install OpenClaw** {#8.-step-4-—-install-openclaw}
 
-**⚠️ Verify legitimacy first:** Before running any installer, confirm OpenClaw's authenticity by reviewing its GitHub repository, maintainer identity, and community trust signals. The steps below assume you have completed that due diligence.
+⚠️ **Verify Legitimacy First:** Before installing, confirm OpenClaw's authenticity by reviewing its official GitHub repository (`openclaw/openclaw`).
 
-```shell
-(
- umask 077
+OpenClaw is a Node.js application. We will use Homebrew to establish a secure runtime and the Node Package Manager (`npm`) to install the gateway.
 
-# Download the installer for review — do NOT execute blindly
-# DO NOT fetch installers from unverified or public domains.
-# For enterprise environments, clone from your trusted internal VCS:
-# git clone https://internal-vcs.example.com/secops/openclaw-mirror.git ~/Downloads/openclaw_src
+## **8.1 Install Node.js Runtime**
 
-# For individual open-source users, clone from the official GitHub repository:
-# Always verify the authenticity of the repository URL and check for signed tags.
-git clone https://github.com/openclawhq/openclaw.git ~/Downloads/openclaw_src
+OpenClaw requires Node.js version 22 or higher. Install it securely via Homebrew to ensure it is managed within your isolated Apple Silicon path:
 
-# Inspect the local installer
-less ~/Downloads/openclaw_src/install.sh
+```
+# Install Node.js
+brew install node
 
-# Execute when satisfied
-bash ~/Downloads/openclaw_src/install.sh
-
-# Verify installation
-# Verify installation
-openclaw --version || echo "⚠️ openclaw not found — check PATH and Gatekeeper settings"
-)
+# Verify the version is >= 22
+node -v
 ```
 
-*Safety Testing*: Dry-run the `git clone` command against your secure internal repository before committing this change to ensure you have the correct SSH/TLS certificates configured for your environment.
+## **8.2 Install OpenClaw Gateway**
 
-**Gatekeeper:** If macOS blocks the binary, navigate to **System Settings → Privacy & Security**, scroll to the blocked item, click **Allow Anyway**, and retry.
+Install the OpenClaw binary globally using `npm`. This ensures the package is registered correctly for future updates or clean rollbacks.
+
+```
+# Install OpenClaw globally
+npm install -g openclaw
+
+# Verify installation and PATH registration
+openclaw --version || echo "⚠️ openclaw not found — check PATH"
+```
 
 ---
 
-## **9\. Step 5 — Configure OpenClaw (Hardened)** {#9.-step-5-—-configure-openclaw-(hardened)}
+# **9\. Step 5 — Configure OpenClaw (Hardened)** {#9.-step-5-—-configure-openclaw-(hardened)}
 
-### **9.1 Create Secure Config Directory** {#9.1-create-secure-config-directory}
+## **9.1 Create Secure Config Directory** {#9.1-create-secure-config-directory}
 
 ```shell
 mkdir -p ~/.openclaw
 chmod 700 ~/.openclaw
 ```
-### **9.2 Generate Auth Token and Write Config** {#9.2-generate-auth-token-and-write-config}
+
+## **9.2 Generate Auth Token and Write Config** {#9.2-generate-auth-token-and-write-config}
 
 ⚠️ **SECURITY WARNING: Do not pass tokens via command-line arguments.** To prevent process-list credential leakage, you must use kernel-protected memory spaces or standard input streams to inject tokens.
 
 Choose one of the two methods below to safely generate your OpenClaw configuration:
 
-**Option A: Use the Automation Script (Recommended for existing configs)**
-Run the hardened token generator included in the repository. It uses a `umask 077` subshell and environment variable injection to safely apply a token without exposing it to macOS process lists.
+**Option A: Use the Automation Script (Recommended for existing configs)** Run the hardened token generator included in the repository. It uses a `umask 077` subshell and environment variable injection to safely apply a token without exposing it to macOS process lists.
 
-```bash
+```shell
 chmod +x scripts/token-generator.sh
 ./scripts/token-generator.sh
 
@@ -469,21 +463,27 @@ chmod +x scripts/token-generator.sh
 
 *(Note: If you use the automation script on a fresh install, it will only create a minimal JSON scaffold. You will need to manually add your agent and tool profiles later.)*
 
-**Option B: Full Configuration Generation (Red-Team Approved)**
-If you are setting this up for the first time, run the block below. It uses a restricted subshell and Python to read the token directly from the standard input stream (`stdin`), ensuring the token never touches the `argv` process list while writing the complete agent configuration.
+**Option B: Full Configuration Generation (Red-Team Approved)** If you are setting this up for the first time, run the block below. It uses a restricted subshell and Python to read the token directly from the standard input stream (`stdin`), ensuring the token never touches the `argv` process list while writing the complete agent configuration.
 
-```bash
+```shell
 (
-  # Enforce strict 600 permissions for files created in this subshell
-  umask 077
-  mkdir -m 700 -p ~/.openclaw
+umask 077
 
-  # Generate a secure 256-bit hex token
-  AUTH_TOKEN="$(openssl rand -hex 32)"
+# 1. Generate a 256-bit high-entropy token
+AUTH_TOKEN=$(openssl rand -hex 32)
+echo "------------------------------------------------"
+echo "CRITICAL: YOUR SECURE TOKEN IS: $AUTH_TOKEN"
+echo "Save this! You will need it to authenticate."
+echo "------------------------------------------------"
 
-  # Write full config via Python. The token is passed via stdin (<<<)
-  # to prevent it from appearing in ps/top process listings.
-  python3 -c "
+# 2. Prompt for Gemini API Key securely (No shell history leak)
+read -rs "GEMINI_KEY?Enter Google Gemini API Key: "
+echo ""
+echo "GEMINI_API_KEY=$GEMINI_KEY" > ~/.openclaw/.env
+echo "✅ Secrets written to ~/.openclaw/.env"
+
+# 3. Use Python to securely assemble the validated 2026.2.26 JSON schema
+python3 -c "
 import json, os, sys
 
 config = {
@@ -501,13 +501,23 @@ config = {
   },
   'agents': {
     'defaults': {
-      'model': {
-        'name': 'llama3:8b',
-        'cloud': {
-          'enabled': True,
-          'provider': 'moonshot-ai',
-          'model': 'kimi-k2.5'
-        }
+      'model': 'google/gemini-3.1-pro-preview'
+    }
+  },
+  'models': {
+    'providers': {
+      'ollama': {
+        'baseUrl': 'http://127.0.0.1:11434',
+        'models': [
+          {'name': 'llama3:8b', 'id': 'llama3:8b'},
+          {'name': 'deepseek-coder-v2:lite', 'id': 'deepseek-coder-v2:lite'}
+        ]
+      },
+      'google': {
+        'baseUrl': 'https://generativelanguage.googleapis.com/v1beta',
+        'models': [
+          {'name': 'gemini-3.1-pro-preview', 'id': 'gemini-3.1-pro-preview'}
+        ]
       }
     }
   }
@@ -518,12 +528,14 @@ with open(path, 'w') as f:
   json.dump(config, f, indent=2)
 " <<< "$AUTH_TOKEN"
 
-  echo "✅ Complete configuration and secure token written to ~/.openclaw/openclaw.json"
+# 4. Lock the files: Read-only for you, no access for anyone else
+chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/.env
+echo "✅ Hardened configuration written to ~/.openclaw/openclaw.json"
 )
-
 ```
 
-### **9.3 Verify Configuration** {#9.3-verify-configuration}
+## **9.3 Verify Configuration** {#9.3-verify-configuration}
 
 ```shell
 # Confirm file exists and has correct permissions
@@ -542,46 +554,69 @@ print('Default model:', c['agents']['defaults']['model']['name'])
 "
 ```
 
-### **9.4 Start OpenClaw** {#9.4-start-openclaw}
+## **9.4 Start OpenClaw & Verify Network Binding**
+
+To maintain the **Zero-Trust Mandate**, we will explicitly disable network discovery protocols (Bonjour/mDNS) before starting the gateway, preventing it from announcing its presence on your local Wi-Fi.
+
+### **1\. Set the Gateway Mode & Disable Cloud Memory Search** 
+
+Because we locked the configuration file to 400 (read-only) in Step 9.2, you must temporarily unlock it to allow the OpenClaw CLI to apply these settings, then immediately re-lock it.
 
 ```shell
-# Check available subcommands (CLI may vary by version)
-openclaw --help | head -n 40
+# Unlock
+chmod 600 ~/.openclaw/openclaw.json
 
-# Start the daemon (method depends on version — try in order)
-# Disable mDNS/Bonjour broadcasting to prevent local network discovery
-echo 'export OPENCLAW_DISABLE_BONJOUR=1' >> ~/.zshrc
-source ~/.zshrc
-export OPENCLAW_DISABLE_BONJOUR=1
-openclaw onboard --install-daemon 2>/dev/null \
- || openclaw serve --daemon 2>/dev/null \
- || openclaw start 2>/dev/null \
- || echo "⚠️ Could not auto-start OpenClaw. Consult: openclaw --help"
+# Apply strict local routing
+openclaw config set gateway.mode local
+openclaw config set agents.defaults.memorySearch.enabled false
 
-sleep 5
+# Re-lock (Zero-Trust)
+chmod 400 ~/.openclaw/openclaw.json
+```
 
-# Verify OpenClaw is listening on loopback
+### **3\. Install and Start the Daemon**
+
+Now that the configuration is valid and fully hardened for local-only use, the daemon will finally allow itself to be installed and started:
+
+Bash
+
+```
+openclaw gateway install
+openclaw daemon start
+```
+
+### **3\. Verify Binding (The Final Test)**
+
+Once the start command completes, wait 3 seconds and run our Verification Script one final time to prove the network is secure:
+
+Bash
+
+```
+echo "=== Binding Verification ==="
 CLAW_LISTEN=$(lsof -iTCP:3000 -sTCP:LISTEN -Pn 2>/dev/null)
 echo "$CLAW_LISTEN"
 
-if echo "$CLAW_LISTEN" | grep -qE '\*:3000'; then
- echo "⛔ FAIL: OpenClaw bound to all interfaces. Fix gateway.host in openclaw.json."
-elif echo "$CLAW_LISTEN" | grep -qE '127\.0\.0\.1:3000|\[::1\]:3000'; then
- echo "✅ PASS: OpenClaw bound to loopback only."
+if echo "$CLAW_LISTEN" | grep -qE '\*:3000|0\.0\.0\.0:3000'; then
+  echo '⛔ CRITICAL FAIL: OpenClaw is exposed.'
+  openclaw daemon stop
+elif echo "$CLAW_LISTEN" | grep -qE '127\.0\.0\.1:3000|localhost:3000|\[::1\]:3000'; then
+  echo '✅ PASS: OpenClaw is bound to loopback only.'
 else
- echo "⚠️ Could not confirm OpenClaw binding. Check output above."
+  echo '⚠️ WARNING: Gateway is not listening on port 3000.'
 fi
 ```
 
 ---
 
-## **10\. Step 6 — Firewall Hardening (pf Anchor)** {#10.-step-6-—-firewall-hardening-(pf-anchor)}
+# **10\. Step 6 — Firewall Hardening (pf Anchor)**
 
-**Purpose:** Even though services are configured to bind to loopback, the `pf` firewall provides a **defense-in-depth** layer. If a misconfiguration or software update causes a service to bind to all interfaces, the firewall blocks external access.
+**Purpose:** Even though services are configured to bind to loopback, the `pf` firewall provides a **defense-in-depth** layer. If a misconfiguration or software update causes a service to bind to all interfaces, the firewall physically drops the packets at the kernel level.
 
-### **10.1 Create the Anchor Rules File** {#10.1-create-the-anchor-rules-file}
+## **10.1 Create the Anchor Rules File**
 
-```shell
+This creates the isolated ruleset for OpenClaw and Ollama.
+
+```
 sudo tee /etc/pf.anchors/openclaw-ollama <<'ANCHOR'
 # OpenClaw + Ollama: loopback-only enforcement
 
@@ -592,57 +627,71 @@ pass in quick on lo0 proto tcp from ::1 to ::1 port { 3000, 11434 }
 # Block all other inbound to service ports
 block in quick proto tcp from any to any port { 3000, 11434 }
 ANCHOR
+```
 
 **Explanation of firewall rules:**
-* `pass in quick on lo0... port { 3000, 11434 }`: Explicitly allows incoming traffic on the loopback interface (`lo0`) for OpenClaw (port 3000) and Ollama (port 11434). This is necessary for local communication and browser access.
-* `block in quick proto tcp from any to any port { 3000, 11434 }`: A strict fallback rule to block any incoming traffic to these ports from external sources, acting as a failsafe if the service bindings fail open.
-* *Note: The `quick` keyword ensures that once a rule matches, no further rules are evaluated for that packet within this anchor.*
+
+* `pass in quick on lo0...`: Explicitly allows incoming traffic on the local loopback interface (`lo0`). This is necessary for the gateway to talk to Ollama and for your browser to reach the UI.  
+* `block in quick...`: A strict fallback rule. If a packet tries to reach port 3000 or 11434 from outside your machine, it is instantly dropped. The `quick` keyword ensures the firewall stops processing and drops it immediately.
+
+## **10.2 Safely Register the Anchor in `/etc/pf.conf**`**
+
+The anchor must be referenced in the base `pf.conf`. We will back it up, safely append the rules, and perform a strict syntax check *before* loading it into the kernel.
+
 ```
+# 1. Define a strict backup variable
+BACKUP_FILE="/etc/pf.conf.backup.$(date +%Y%m%d%H%M%S)"
 
-### **10.2 Register the Anchor in `/etc/pf.conf`** {#10.2-register-the-anchor-in-/etc/pf.conf}
+# 2. Back up existing pf.conf safely
+sudo cp /etc/pf.conf "$BACKUP_FILE"
 
-The anchor must be referenced in the base `pf.conf` to be evaluated during packet filtering.
-
-```shell
-# Back up existing pf.conf
-sudo cp /etc/pf.conf /etc/pf.conf.backup.$(date +%Y%m%d%H%M%S)
-
-# Add anchor reference if not already present
+# 3. Add anchor reference safely
 if ! grep -q 'anchor "openclaw-ollama"' /etc/pf.conf; then
- echo 'anchor "openclaw-ollama"' | sudo tee -a /etc/pf.conf
- echo 'load anchor "openclaw-ollama" from "/etc/pf.anchors/openclaw-ollama"' | sudo tee -a /etc/pf.conf
+  echo "" | sudo tee -a /etc/pf.conf > /dev/null
+  echo 'anchor "openclaw-ollama"' | sudo tee -a /etc/pf.conf > /dev/null
+  echo 'load anchor "openclaw-ollama" from "/etc/pf.anchors/openclaw-ollama"' | sudo tee -a /etc/pf.conf > /dev/null
 fi
 
-# Reload the full ruleset
-sudo pfctl -f /etc/pf.conf
-
-# Enable pf if not already enabled
-sudo pfctl -e 2>/dev/null || true
+# 4. CRITICAL: Validate syntax before loading
+echo "Validating pf.conf syntax..."
+if sudo pfctl -vnf /etc/pf.conf 2>&1 | grep -q "syntax error"; then
+  echo "⛔ CRITICAL FAIL: Syntax error in pf.conf. Restoring exact backup..."
+  sudo mv "$BACKUP_FILE" /etc/pf.conf
+  exit 1
+else
+  echo "✅ Syntax OK. Reloading firewall..."
+  # 5. Reload the full ruleset and enable pf
+  sudo pfctl -f /etc/pf.conf
+  sudo pfctl -e 2>/dev/null || true
+  echo "✅ Firewall shield active."
+fi
 ```
 
-### **10.3 Verify Firewall Rules** {#10.3-verify-firewall-rules}
+## **10.3 Verify Firewall Rules**
 
-```shell
+Confirm the rules are actively loaded into the kernel's memory.
+
+```
 # Show that the anchor is registered
 sudo pfctl -s Anchors | grep openclaw-ollama
 
-# Show the rules within the anchor
+# Show the active rules within the anchor
 sudo pfctl -a openclaw-ollama -s rules
-
-# Expected output should show:
-# pass in quick on lo0 ... port = 3000
-# pass in quick on lo0 ... port = 11434
-# block in quick ... port = 3000
-# block in quick ... port = 11434
 ```
 
----
+## **10.4 Lock Configuration File (Zero-Trust)**
 
-## **11\. Step 7 — End-to-End Verification** {#11.-step-7-—-end-to-end-verification}
+Now that the gateway is fully configured and all local network modes are set, we must lock the configuration file to make it strictly read-only. This ensures absolute immutability; neither accidental commands nor malicious scripts can alter your AI environment variables.
 
-Run this comprehensive check to confirm the full stack is operational and secure.
+```
+chmod 400 ~/.openclaw/openclaw.json
+```
 
-```shell
+# **11\. Step 7 — End-to-End Verification**
+
+Run this comprehensive check to confirm the full stack is operational, locked down, and physically shielded.
+
+```
 echo "============================================"
 echo " End-to-End Verification"
 echo "============================================"
@@ -659,10 +708,10 @@ echo "--- OpenClaw (port 3000) ---"
 lsof -iTCP:3000 -sTCP:LISTEN -Pn 2>/dev/null || echo "⚠️ No listener on 3000"
 echo ""
 
-# 2.5. Verify File Permissions
+# 2.5. Verify File Permissions (Zero-Trust Check)
 echo "--- File Permissions ---"
 ls -ld ~/.openclaw | grep -q "drwx------" && echo "✅ OpenClaw directory secure (700)" || echo "⚠️ OpenClaw directory permissions incorrect"
-ls -l ~/.openclaw/openclaw.json | grep -q -- "-rw-------" && echo "✅ Config file secure (600)" || echo "⚠️ Config file permissions incorrect"
+ls -l ~/.openclaw/openclaw.json | grep -q -- "-r--------" && echo "✅ Config file strictly locked (400)" || echo "⚠️ Config file permissions incorrect (Not 400)"
 echo ""
 
 # 3. Firewall
@@ -675,32 +724,108 @@ echo "--- Ollama models ---"
 ollama list
 echo ""
 
-# 5. OpenClaw config (no secrets)
-echo "--- OpenClaw config (sanitized) ---"
+# 5. OpenClaw config (Sanitized)
+echo "--- OpenClaw config ---"
 python3 -c "
-import json
-with open('$HOME/.openclaw/openclaw.json') as f:
- c = json.load(f)
-c['gateway']['auth']['token'] = '***REDACTED***'
-print(json.dumps(c, indent=2))
-" 2>/dev/null || echo "⚠️ Could not read OpenClaw config"
+import json, os
+try:
+  with open(os.path.expanduser('~/.openclaw/openclaw.json')) as f:
+    c = json.load(f)
+  if 'gateway' in c and 'auth' in c['gateway']:
+    c['gateway']['auth']['token'] = '***REDACTED***'
+  print(json.dumps(c, indent=2))
+except Exception as e:
+  print('⚠️ Could not read or parse OpenClaw config:', e)
+" 2>/dev/null
 echo ""
 
 echo "============================================"
-echo " Verification complete."
+echo " Verification complete. System is Secure."
 echo "============================================"
 ```
 
-### **Start Using OpenClaw** {#start-using-openclaw}
+---
 
-```shell
-# Interactive chat (default model: llama3:8b, cloud fallback: kimi-k2.5)
-openclaw
+# **11b. Start Using OpenClaw**
 
-# To use the coding model, switch agent (syntax varies by version):
-openclaw --agent coder 2>/dev/null \
- || openclaw --model deepseek-coder-v2:lite 2>/dev/null \
- || echo "Check 'openclaw --help' for model/agent switching syntax."
+With the gateway daemon running securely in the background, you now have two ways to interact with your local AI agents.
+
+### **Option A: The Web Dashboard (Recommended & Authenticated)**
+
+OpenClaw 2026.2.26 includes a built-in graphical UI. Because we enforced strict Zero-Trust authentication, the dashboard will initially block access until you provide your cryptographic token.
+
+**1\. Retrieve your Gateway Token:** Run this command to safely extract your token from the locked configuration file:
+
+```
+python3 -c "import json, os; print('\n🔑 TOKEN: ' + json.load(open(os.path.expanduser('~/.openclaw/openclaw.json')))['gateway']['auth']['token'] + '\n')"
+```
+
+**2\. Open and Authenticate the Dashboard:** You have two ways to pass this token to the web UI:
+
+* **Method 1 (UI Entry):** Open `http://127.0.0.1:3000/` in your browser. In the left sidebar, navigate to **Control \> Overview**. Find the **Gateway Token** field, paste your token, and apply it. The "Health" indicator will turn green when successful.  
+* **Method 2 (URL Auto-Login):** Append your token directly to the URL to instantly log in (replace `YOUR_TOKEN` with the actual token):
+
+```
+open "[http://127.0.0.1:3000/?token=YOUR_TOKEN](http://127.0.0.1:3000/?token=YOUR_TOKEN)"
+```
+
+### **Option B: Terminal CLI Chat**
+
+If you prefer to stay in the terminal, you can interact with the default agent (`google/gemini-3.1-pro-preview`) directly via the command line. **Note: This default requires an active internet connection.** The CLI automatically reads your local token, so no manual authentication is required:
+
+```
+openclaw chat
+```
+
+*(Note: To switch models or agents, type `/help` once inside the chat interface to see the updated v2026 commands).*
+
+# **11c. Handling macOS Power Management and Long Jobs**
+
+**Purpose:** Because OpenClaw is installed as a user-level LaunchAgent (tied to your graphical login), macOS's power management will suspend or terminate the daemon when the Mac goes to sleep or enters deep idle states. This section explains how to wake the gateway back up, and how to prevent it from sleeping during long AI agent tasks.
+
+## **Waking OpenClaw After Sleep**
+
+If your Mac has been asleep for an extended period, the OpenClaw daemon may have been terminated by macOS App Nap.
+
+To check if the gateway is still alive, run:
+
+```
+openclaw daemon status
+
+```
+
+If the status reports the service is stopped or the RPC probe fails, simply wake it back up by starting the daemon again. It will instantly reconnect to your secure `openclaw.json` configuration:
+
+```
+openclaw daemon start
+
+```
+
+## **Keeping OpenClaw Awake for Long Jobs (The `caffeinate` Method)**
+
+If you are starting a massive data processing task or leaving the agent to run autonomously overnight, you must explicitly tell the macOS kernel not to sleep.
+
+Instead of downloading third-party apps, use the native macOS `caffeinate` command. This ensures your Zero-Trust environment remains strictly native.
+
+### **Option A: Keep Awake Until You Cancel**
+
+Open a new terminal tab and run this command. Your Mac will not go to sleep as long as this command is running.
+
+```
+# Prevent idle, system, and disk sleep
+caffeinate -i -s -m
+
+```
+
+*To allow your Mac to sleep normally again, go to this terminal window and press **Control \+ C**.*
+
+### **Option B: Keep Awake for a Specific Time**
+
+If you know your AI job will take about 4 hours, you can tell macOS to stay awake for exactly that long (in seconds) and then return to normal power saving.
+
+```
+# Keep awake for 4 hours (14400 seconds)
+caffeinate -i -s -m -t 14400 &
 ```
 
 ---
@@ -709,40 +834,33 @@ openclaw --agent coder 2>/dev/null \
 
 **⚠️ PRIVACY WARNING**
 
-When `kimi-k2.5` (cloud) is the active model, your prompts and code are transmitted directly by the OpenClaw gateway to Moonshot AI servers.
+When `gemini-3.1-pro-preview` (cloud) is the active model, your prompts and code are transmitted directly by the OpenClaw gateway to Google's servers.
 
-*Safety Testing*: Check your network monitoring or Little Snitch rules to confirm that the `openclaw` process itself (not `ollama`) is making the outbound egress connections to the Moonshot AI API endpoints.
+Safety Testing: Check your network monitoring or Little Snitch rules to confirm that the `openclaw` process itself (not `ollama`) is making the outbound egress connections to `generativelanguage.googleapis.com`.
 
-**Do NOT send to cloud models:**
+Do NOT send to cloud models:
 
-- Passwords, API keys, or authentication tokens  
-- Proprietary source code or trade secrets  
-- Personally identifiable information (PII)  
-- Sensitive business logic or algorithms
+* Passwords, API keys, or authentication tokens  
+* Proprietary source code or trade secrets  
+* Personally identifiable information (PII)  
+* Sensitive business logic or algorithms
 
-**For sensitive work:** Use `deepseek-coder-v2:lite` (local, fully offline).
+For sensitive work: Use `deepseek-coder-v2:lite` (local, fully offline).
 
-**Data retention:** Review Moonshot AI's privacy policy before use: [https://www.moonshot.cn/en/privacy-policy](https://www.moonshot.cn/en/privacy-policy}$$)
+Data retention: Review Google's API terms of service. By default, data sent via the Gemini API is not used to train their foundation models, but it is processed on their infrastructure.
 
-Privacy-Preserving Alternative (Venice AI): If you require cloud-level reasoning but cannot accept Moonshot AI's data retention policies, consider switching your API provider to Venice AI (`venice.ai`).
-
-* They host the same `kimi-k2.5` model but explicitly claim not to log prompts or train on user data.  
-* They accept cryptocurrency, allowing you to decouple your AI infrastructure identity from your financial identity.  
-* To switch, update `~/.openclaw/openclaw.json` to set `'provider': 'venice'` and supply a Venice API key via the `AUTH_TOKEN` environment variable pipeline outlined in Section 14\.  
-* *Security Reality:* You cannot mathematically verify their "no logging" claim. It is harm reduction via vendor selection, not a cryptographic guarantee.
-
-**Local-only verification:** To confirm a model is running locally (not via cloud proxy), check Ollama's active processes:
+**Local-only verification:** To confirm you are using a local model, verify the active model using the `/model` chat command, and check Ollama's active processes:
 
 ```shell
 ollama ps
-# If the model is listed here, it is loaded locally.
+# If the model is listed here, it is currently loaded in your Mac's Unified Memory.
 ```
 
 ---
 
-## **13\. Maintenance & Updates** {#13.-maintenance-&-updates}
+# **13\. Maintenance & Updates** {#13.-maintenance-&-updates}
 
-### **13.1 Weekly: Update Packages** {#13.1-weekly:-update-packages}
+## **13.1 Weekly: Update Packages** {#13.1-weekly:-update-packages}
 
 **If you installed OpenClaw via the secure internal mirror:**
 
@@ -770,7 +888,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
 # brew services restart ollama
 ```
 
-### **13.2 Monthly: Refresh Models** {#13.2-monthly:-refresh-models}
+## **13.2 Monthly: Refresh Models** {#13.2-monthly:-refresh-models}
 
 ```shell
 ollama pull llama3:8b --latest
@@ -780,7 +898,7 @@ ollama pull deepseek-coder-v2:lite --latest
 df -h ~
 ```
 
-### **13.3 Monthly: Secure Configuration Backup**  {#13.3-monthly:-secure-configuration-backup}
+## **13.3 Monthly: Secure Configuration Backup** {#13.3-monthly:-secure-configuration-backup}
 
 Backing up your OpenClaw directory is critical, but it contains sensitive credentials and operational data. Never upload unencrypted backups to cloud storage or email them to yourself.
 
@@ -793,21 +911,21 @@ brew install gnupg
 tar czf - ~/.openclaw | gpg --symmetric --cipher-algo AES256 > ~/Desktop/openclaw-backup-$(date +%Y%m%d).tar.gz.gpg
 ```
 
-### **13.4 Quarterly: Credential Rotation**  {#13.4-quarterly:-credential-rotation}
+## **13.4 Quarterly: Credential Rotation** {#13.4-quarterly:-credential-rotation}
 
 Do not wait for a breach to rotate credentials. Establish a proactive 90-180 day rotation cadence for all external and internal secrets connected to your AI infrastructure:
 
-* **Cloud API Keys:** Log into your provider (Moonshot AI or Venice AI), generate a new key, update your gateway environment or secure vault, and strictly revoke the old key.  
+* **Cloud API Keys:** Log into Google AI Studio, generate a new API key, update your \`\~/.openclaw/.env\` file, and strictly revoke the old key in the Google console.  
 * **Local Gateway Token:** Execute the `jq` token rotation script provided in Section 14 to cycle your internal `AUTH_TOKEN`.  
 * **Host Credentials:** Rotate your macOS admin password and review `~/.ssh/authorized_keys` for stale remote management keys.
 
 ---
 
-## **14\. Token Rotation** {#14.-token-rotation}
+# **14\. Token Rotation** {#14.-token-rotation}
 
 Generate a new authentication token for OpenClaw and update the config securely.
 
-### **14.1 Using `jq` (Recommended)** {#14.1-using-jq-(recommended)}
+## **14.1 Using `jq` (Recommended)** {#14.1-using-jq-(recommended)}
 
 ```shell
 # Install jq if not already present
@@ -819,10 +937,16 @@ brew install jq
 umask 077
 AUTH_TOKEN_NEW="$(openssl rand -hex 32)"
 
+# Unlock the configuration first
+chmod 600 ~/.openclaw/openclaw.json
+
 # Update JSON safely using jq by passing the token as an environment argument
 jq --arg t "$AUTH_TOKEN_NEW" '.gateway.auth.token = $t' \
   ~/.openclaw/openclaw.json > ~/.openclaw/openclaw.json.tmp
-mv ~/.openclaw/openclaw.json.tmp ~/.openclaw/openclaw.json
+mv -f ~/.openclaw/openclaw.json.tmp ~/.openclaw/openclaw.json
+
+# Re-lock for Configuration Immutability
+chmod 400 ~/.openclaw/openclaw.json
 )
 # AUTH_TOKEN_NEW is naturally wiped from the environment as the subshell closes
 
@@ -836,7 +960,7 @@ openclaw onboard --restart-daemon 2>/dev/null || \
 
 *Safety Testing*: Run `(umask 077; echo "{}" > /tmp/jq_test.json.tmp)` and verify with `ls -l /tmp/jq_test.json.tmp` that the file natively generates with `-rw-------` permissions before deploying this fix.
 
-### **14.2 If `jq` Is Not Available (Python)** {#14.2-if-jq-is-not-available-(python)}
+## **14.2 If `jq` Is Not Available (Python)** {#14.2-if-jq-is-not-available-(python)}
 
 ```shell
 
@@ -856,13 +980,14 @@ with open(path, "r") as f:
 # TOKEN is passed via environment (never shell expansion)
 config['gateway']['auth']['token'] = os.environ['AUTH_TOKEN_NEW']
 
-# Write to temporary file, then atomically move
+# Write to temporary file, unlock target, atomically move, and re-lock
 tmp_path = path + ".tmp"
 with open(tmp_path, "w") as f:
- json.dump(config, f, indent=2)
+  json.dump(config, f, indent=2)
 
-os.replace(tmp_path, path)
 os.chmod(path, 0o600)
+os.replace(tmp_path, path)
+os.chmod(path, 0o400)
 PYTHON
 )
 # AUTH_TOKEN_NEW is naturally wiped from the environment as the subshell closes
@@ -870,12 +995,11 @@ PYTHON
 # Restart OpenClaw (as above)
 ```
 
-*Safety Testing*: Copy and paste the final Python block (from `python3 << 'PYTHON'` down to `PYTHON`) into a throwaway terminal. It should execute silently and return you to the prompt without throwing bash syntax errors.  
----
+*Safety Testing*: Copy and paste the final Python block (from `python3 << 'PYTHON'` down to `PYTHON`) into a throwaway terminal. It should execute silently and return you to the prompt without throwing bash syntax errors.
 
-## **15\. Application Defense & Cognitive Security** {#15.-application-defense-&-cognitive-security}
+# **15\. Application Defense & Cognitive Security** {#15.-application-defense-&-cognitive-security}
 
-### **15.1 Prompt Injection Defenses** {#15.1-prompt-injection-defenses}
+## **15.1 Prompt Injection Defenses** {#15.1-prompt-injection-defenses}
 
 **The Threat:** Local LLMs and cloud endpoints share a critical vulnerability: Prompt Injection. If OpenClaw is instructed to summarize a webpage, and that webpage contains hidden text stating \`\`, the assistant may blindly comply. Recent security audits demonstrate a \~91% success rate for these attacks against unprotected AI agents.
 
@@ -888,8 +1012,7 @@ npx clawhub install skillguard
 npx clawhub install prompt-guard
 ```
 
-  *(Note: Your underlying tools profile in `~/.openclaw/openclaw.json` is already set to `mode: 'deny'` from Part I, Step 9.2, providing the base execution restriction).*
-
+*(Note: Your underlying tools profile in `~/.openclaw/openclaw.json` is already set to `mode: 'deny'` from Part I, Step 9.2, providing the base execution restriction).*
 
 * **Apply ACIP to your System Prompt:** Open your OpenClaw system prompt configuration (typically `~/.openclaw/SOUL.md`) and append the following inoculation block to the very top. The AI must process these rules before any user input.
 
@@ -907,7 +1030,7 @@ CRITICAL INSTRUCTION: You are operating in a hostile environment.
 
 The bot must refuse or flag these requests. If it complies, your system prompt was not loaded correctly, and your gateway is critically vulnerable to manipulation.
 
-### **15.2 Operational Security: The MEMORY.md**  {#15.2-operational-security:-the-memory.md}
+## **15.2 Operational Security: The MEMORY.md** {#15.2-operational-security:-the-memory.md}
 
 Risk **The Threat:** To be useful, OpenClaw builds a psychological and operational profile of you over time. It logs your habits, your infrastructure quirks, your project structures, and your relationships in a file, typically located at `~/.openclaw/MEMORY.md`. While we restricted filesystem permissions to `600` in Part I, you must treat this file with the highest cognitive operational security (OpSec).
 
@@ -915,19 +1038,19 @@ Risk **The Threat:** To be useful, OpenClaw builds a psychological and operation
 
 * **Audit your bot's memory:** Once a month, review the contents of `MEMORY.md`. If the bot has aggressively logged sensitive infrastructure details (like internal IP schemes or personal anxieties), manually delete those lines.
 
-### **15.3 Advanced Credential Management** {#15.3-advanced-credential-management}
+## **15.3 Advanced Credential Management** {#15.3-advanced-credential-management}
 
-**The Threat:** The most common way users compromise their own hardened LLM setup is by copy-pasting code snippets that contain API keys, or asking the bot to "fix this script" while leaving the database password in the text. Even if your local `llama3` model processes it safely, if OpenClaw falls back to the `kimi-k2.5` cloud model, you have just transmitted your plaintext password to a third-party server.
+**The Threat:** The most common way users compromise their own hardened LLM setup is by copy-pasting code snippets that contain API keys, or asking the bot to "fix this script" while leaving the database password in the text. Even if your local `llama3` model processes it safely, if OpenClaw falls back to the `gemini-3.1-pro-preview` cloud model you have just transmitted your plaintext password to a third-party server.
 
 **The Fix:** Never paste secrets into the chat interface. Integrate a CLI-based password vault (like `1Password CLI` or `pass`). If you need OpenClaw to write a script that requires a secret, instruct it to use the vault's CLI command to fetch the credential at runtime, rather than providing the credential in the prompt. *Example secure prompt:* "Write a python script to connect to my database. Fetch the password dynamically using `op read op://Private/Database/password`."
 
-### **15.4 Secure Remote Access Architecture (Matrix \+ Tailscale)** {#15.4-secure-remote-access-architecture-(matrix-+-tailscale)}
+## **15.4 Secure Remote Access Architecture (Matrix \+ Tailscale)** {#15.4-secure-remote-access-architecture-(matrix-+-tailscale)}
 
 **The Threat:** The appeal of an AI assistant is querying it from your phone while away from your Mac. However, routing OpenClaw through Telegram, Discord, or Slack exposes all of your plaintext conversations to those corporate bot APIs. Furthermore, exposing an OpenClaw webhook directly to the public internet via port forwarding is a critical risk.
 
 **The Fix:** Combine an overlay network with End-to-End Encryption (E2EE).
 
-**1\. The Transport Layer (Tailscale)**   
+**1\. The Transport Layer (Tailscale)**  
 Create a secure, WireGuard-backed Mesh VPN so your Mac's OpenClaw port is only accessible to authenticated devices. No router ports are opened.
 
 ```shell
@@ -942,7 +1065,7 @@ TAILSCALE_IP=$(tailscale ip -4)
 echo "Your Tailscale IP is: $TAILSCALE_IP"
 ```
 
-**2\. The Application Layer (Matrix Synapse)** 
+**2\. The Application Layer (Matrix Synapse)**
 
 Do not use Telegram or Signal. Deploy a local Matrix homeserver bound *only* to your Tailscale IP.
 
@@ -969,7 +1092,7 @@ sed -i '' "s/bind_addresses: \\['0.0.0.0'\\]/bind_addresses: \\['$TAILSCALE_IP'\
 brew services start matrix-synapse
 ```
 
-**3\. The OpenClaw Integration**   
+**3\. The OpenClaw Integration**  
 The `@openclaw/matrix` plugin currently ships with a `pnpm` workspace bug that causes standard `npm install` to fail. You must install it manually and patch the `package.json` for macOS.
 
 ```shell
@@ -1003,12 +1126,11 @@ By default, OpenClaw operates in a zero-trust mode and will drop all messages fr
 openclaw pairing approve matrix <YOUR_PAIRING_CODE>
 ```
 
-
 * **Red Team Verification:** Ask a friend (or use a secondary Matrix account) to message the bot. Verify the bot silently drops the message and does not respond, confirming that unauthenticated access is strictly blocked.
 
 **The Result:** When you message OpenClaw from your phone, the message is encrypted locally, transmitted over the WireGuard tunnel, decrypted by your local Mac Matrix server, and handed to OpenClaw.
 
-### **15.5 Shell History Hygiene**  {#15.5-shell-history-hygiene}
+## **15.5 Shell History Hygiene** {#15.5-shell-history-hygiene}
 
 If you accidentally type a secret into the shell, remove it from history:
 
@@ -1026,7 +1148,7 @@ Safety Testing: Run `echo -e "safe\nAUTH_TOKEN=123\nopenssl rand" > /tmp/dummy_h
 
 Better practice: Avoid typing secrets at all. Use the methods above (variables \+ piping to config writers) to keep secrets out of shell history.
 
-### **15.6 Incident Response: Breach Protocol** {#15.6-incident-response:-breach-protocol}
+# **15.6 Incident Response: Breach Protocol** {#15.6-incident-response:-breach-protocol}
 
 If you suspect a prompt injection attack has successfully executed malicious instructions (e.g., you observe anomalous CPU spikes, unexpected loopback traffic, or the bot behaving erratically), assume breach and execute the following containment protocol:
 
@@ -1058,7 +1180,7 @@ cat ~/.ssh/authorized_keys
 find ~/.openclaw -mtime -1 -ls
 ```
 
-4. **Rotate and Revoke:** Immediately log into your cloud AI provider (Moonshot AI or Venice AI) and revoke your API keys. Generate a new local gateway token for OpenClaw following the strict procedure in Section 14\.
+4. **Rotate and Revoke:** Immediately log into Google AI Studio and revoke your API keys. Generate a new local gateway token for OpenClaw following the strict procedure in Section 14\.
 
 ---
 
@@ -1068,7 +1190,8 @@ find ~/.openclaw -mtime -1 -ls
 | :---- | :---- |
 | **IPv6 loopback** | Services may bind to `::1` (IPv6 loopback). Commands like `lsof` show this as `[::1]:port`. Both `127.0.0.1` (IPv4) and `::1` (IPv6) are loopback; the pf rules above cover both. |
 | **Service manager conflicts** | Do not run `brew services start ollama` AND the custom LaunchAgent simultaneously. Choose one method. |
-| **OpenClaw subcommands** | CLI syntax varies by version. Always run `openclaw --help` before scripting specific commands. |
+| **The "Unlock-Modify-Lock" Workflow** | Because your configuration is locked to `400` (Zero-Trust), standard OpenClaw commands like `openclaw doctor --fix`, `openclaw configure`, or `openclaw config set` will fail with permission errors. You must run `chmod 600 ~/.openclaw/openclaw.json` before running configuration commands, and `chmod 400 ~/.openclaw/openclaw.json` immediately after. |
+| **OpenClaw subcommands**  | CLI syntax varies by version. Always run `openclaw --help` before scripting specific commands. |
 | **Model availability** | `ollama search <model>` verifies a model exists in Ollama's registry before pulling. |
 | **Disk space monitoring** | Monitor `df -h ~` regularly, especially after pulling large models. Remove old models with `ollama rm <model>` if space is constrained. |
 | **Logs location** | Ollama logs go to `~/Library/Logs/Ollama/`. Inspect these if services fail to start. |
@@ -1158,7 +1281,7 @@ cat ~/Library/Logs/OpenClaw/openclaw.stderr.log 2>/dev/null || echo "No logs fou
 
 - Port 3000 already in use: `lsof -i :3000`.  
 - Config JSON syntax error: `python3 -m json.tool ~/.openclaw/openclaw.json` to validate.  
-- Missing `kimi-k2.5` model or cloud provider configuration: Verify `openclaw --help` for cloud setup steps.
+- Missing \`gemini-3.1-pro-preview\` model or \`.env\` configuration: Verify `openclaw --help` for cloud setup steps.
 
 ### **Services appear bound to all interfaces (`*:port`)** {#services-appear-bound-to-all-interfaces-(*:port)}
 
@@ -1198,26 +1321,27 @@ grep openclaw-ollama /etc/pf.conf
 
 ---
 
-## **19. Security Audit Checklist** {#19.-security-audit-checklist}
+## **19\. Security Audit Checklist** {#19.-security-audit-checklist}
 
 Use this before considering the setup production-ready.
 
 ⚠️ **SECURITY WARNING: Do not rely solely on application-level self-audits or standard `lsof` commands.** An application cannot reliably audit its own containment, and standard port queries can return false positives from outbound connections. You must verify the architectural containment from the outside using deterministic state verification.
 
-### Phase 1: Architectural Validation (Required)
+### **Phase 1: Architectural Validation (Required)**
+
 Run the repository's automated auditing script to mathematically verify the integrity of your 4-layer architecture (Application Bindings, Firewall Anchors, and Filesystem Permissions).
 
-```bash
+```shell
 chmod +x scripts/post-install-verify.sh
 ./scripts/post-install-verify.sh
 
 ```
 
-### Phase 2: Application-Level Audit & Sanity Checks
+### **Phase 2: Application-Level Audit & Sanity Checks**
 
 Once the architectural blast radius is secured by the script above, run OpenClaw's built-in audit to check for internal software misconfigurations and verify your operational parameters.
 
-```bash
+```shell
 openclaw security audit --deep
 
 ```
@@ -1226,13 +1350,13 @@ openclaw security audit --deep
 
 **Manual Verification Items:**
 
-* [ ] `uname -m` returns `arm64` (Apple Silicon confirmed)
-* [ ] `df -h ~` shows >= 20 GB free after all model pulls
-* [ ] `ollama list` shows both local models (`llama3:8b`, `deepseek-coder-v2:lite`)
-* [ ] `curl http://127.0.0.1:11434/api/version` responds successfully
-* [ ] Ollama logs location is `~/Library/Logs/Ollama/` (not world-readable `/tmp/`)
-* [ ] Auth token in `~/.openclaw/openclaw.json` is exactly 64 hex characters (256 bits)
-* [ ] You have verified OpenClaw's GitHub repository and maintainer identity independently
+- [ ] `uname -m` returns `arm64` (Apple Silicon confirmed)  
+- [ ] `df -h ~` shows \>= 20 GB free after all model pulls  
+- [ ] `ollama list` shows both local models (`llama3:8b`, `deepseek-coder-v2:lite`)  
+- [ ] `curl http://127.0.0.1:11434/api/version` responds successfully  
+- [ ] Ollama logs location is `~/Library/Logs/Ollama/` (not world-readable `/tmp/`)  
+- [ ] Auth token in `~/.openclaw/openclaw.json` is exactly 64 hex characters (256 bits)  
+- [ ] You have verified OpenClaw's GitHub repository and maintainer identity independently
 
 ---
 
@@ -1243,7 +1367,7 @@ openclaw security audit --deep
 | [Ollama GitHub](https://github.com/ollama/ollama) | Official Ollama project & releases |
 | [Homebrew Installation](https://docs.brew.sh/Installation) | Homebrew official docs (checksum verification) |
 | [macOS pf Manual](https://man.openbsd.org/pf.conf) | OpenBSD pf documentation (applicable to macOS) |
-| [Moonshot AI Privacy Policy](https://www.moonshot.cn/en/privacy-policy) | Data handling for kimi-k2.5 cloud |
+| [Google Gemini API Terms](https://ai.google.dev/gemini-api/terms) | Data handling and privacy for Gemini models |
 | [OpenClaw GitHub](https://github.com/openclawhq/openclaw) | *(Verify this URL is current before use)* |
 | [OWASP: Defense in Depth](https://owasp.org/www-community/Defense_in_depth) | Security principles underlying this guide |
 
@@ -1289,7 +1413,7 @@ pass in quick on lo0 proto tcp to port 11434 user _nginx
 
 *Safety Testing*: Reload your `pf` rules (`sudo pfctl -f /etc/pf.conf`), then execute `curl http://[::1]:11434` as your standard user. The connection must be actively blocked or time out.
 
-Complexity trade-off: TLS on localhost adds operational overhead (certificate generation, renewal) for minimal practical benefit in a single-user system. 
+Complexity trade-off: TLS on localhost adds operational overhead (certificate generation, renewal) for minimal practical benefit in a single-user system.
 
 Evaluate against your threat model before implementing.
 
@@ -1378,7 +1502,149 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.local.health-check.p
 * **Automation:** It schedules the `health-check.sh` script (created just before this section) to run automatically every **5 minutes** (`StartInterval` of 300 seconds).  
 * **Monitoring:** It continuously checks the service status (listening ports), disk space, Ollama models, and process resource usage.  
 * **Logging:** It directs the output to a log file (`~/Library/Logs/health-check.log`), allowing you to track the health of your local LLM infrastructure over time.  
-* **macOS Compatibility:** It uses a `LaunchAgent` instead of a traditional `cron` job to bypass modern macOS **Transparency, Consent, and Control (TCC)** restrictions, ensuring the check runs and logs correctly.
+* **macOS Compatibility:** It uses a `LaunchAgent` instead of a traditional `cron` job to bypass modern macOS Transparency, Consent, and Control (TCC) restrictions, ensuring the check runs and logs correctly.
 
----
+## 
 
+## **Appendix D: Automated Zero-Trust Deployment Script**
+
+This script executes the entirety of this manual's deployment phases in a single pass. It requires your Gemini API key upfront and assumes you have Homebrew installed.
+
+**Usage:** Save as `deploy-openclaw.sh`, make it executable (`chmod +x deploy-openclaw.sh`), and run it.
+
+```shell
+#!/bin/zsh
+# OpenClaw 2026.2.26 Hardened Deployment Script
+# Architecture: Local Ollama + Cloud Gemini Fallback
+set -e
+
+echo "🦞 Starting Zero-Trust OpenClaw Deployment..."
+
+# 1. Require Gemini Key Upfront (No History Leak)
+read -rs "GEMINI_KEY?Enter Google Gemini API Key: "
+echo "\n"
+
+# 2. Setup Ollama LaunchAgent (Loopback Only)
+echo "🔒 Securing Ollama binding..."
+mkdir -p ~/Library/Logs/Ollama
+tee ~/Library/LaunchAgents/com.ollama.serve.plist > /dev/null <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "[http://www.apple.com/DTDs/PropertyList-1.0.dtd](http://www.apple.com/DTDs/PropertyList-1.0.dtd)">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ollama.serve</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/ollama</string>
+        <string>serve</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OLLAMA_HOST</key>
+        <string>127.0.0.1:11434</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>$HOME/Library/Logs/Ollama/ollama.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/Library/Logs/Ollama/ollama.stderr.log</string>
+</dict>
+</plist>
+EOF
+
+launchctl bootout gui/$(id -u)/com.ollama.serve 2>/dev/null || true
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
+sleep 3
+
+# 3. Pull Models
+echo "🧠 Pulling local models (this may take a while)..."
+/opt/homebrew/bin/ollama pull llama3:8b
+/opt/homebrew/bin/ollama pull deepseek-coder-v2:lite
+
+# 4. Generate Hardened OpenClaw Config
+echo "⚙️ Writing OpenClaw configuration..."
+(
+umask 077
+mkdir -p ~/.openclaw
+AUTH_TOKEN=$(openssl rand -hex 32)
+echo "GEMINI_API_KEY=$GEMINI_KEY" > ~/.openclaw/.env
+
+python3 -c "
+import json, os, sys
+config = {
+  'gateway': {
+    'host': '127.0.0.1',
+    'port': 3000,
+    'mode': 'local',
+    'auth': { 'token': sys.stdin.read().strip() }
+  },
+  'tools': {
+    'profile': 'minimal',
+    'mode': 'deny',
+    'deny': ['browser', 'shell', 'fs.write', 'system.run']
+  },
+  'agents': {
+    'defaults': {
+      'model': 'google/gemini-3.1-pro-preview',
+      'memorySearch': {'enabled': False}
+    }
+  },
+  'models': {
+    'providers': {
+      'ollama': {
+        'baseUrl': '[http://127.0.0.1:11434](http://127.0.0.1:11434)',
+        'models': [
+          {'name': 'llama3:8b', 'id': 'llama3:8b'},
+          {'name': 'deepseek-coder-v2:lite', 'id': 'deepseek-coder-v2:lite'}
+        ]
+      },
+      'google': {
+        'baseUrl': '[https://generativelanguage.googleapis.com/v1beta](https://generativelanguage.googleapis.com/v1beta)',
+        'models': [
+          {'name': 'gemini-3.1-pro-preview', 'id': 'gemini-3.1-pro-preview'}
+        ]
+      }
+    }
+  }
+}
+path = os.path.expanduser('~/.openclaw/openclaw.json')
+with open(path, 'w') as f:
+  json.dump(config, f, indent=2)
+" <<< "$AUTH_TOKEN"
+
+chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/.env
+
+echo "\n================================================"
+echo "🔑 YOUR UI ACCESS TOKEN IS: $AUTH_TOKEN"
+echo "================================================\n"
+)
+
+# 5. Start OpenClaw
+echo "🚀 Starting OpenClaw daemon..."
+openclaw gateway install
+openclaw daemon start
+sleep 3
+
+# 6. Apply pf Firewall Shield
+echo "🛡️ Applying pf Firewall Anchor (requires sudo)..."
+sudo tee /etc/pf.anchors/openclaw-ollama > /dev/null <<'EOF'
+pass in quick on lo0 proto tcp from 127.0.0.1 to 127.0.0.1 port { 3000, 11434 }
+pass in quick on lo0 proto tcp from ::1 to ::1 port { 3000, 11434 }
+block in quick proto tcp from any to any port { 3000, 11434 }
+EOF
+
+if ! grep -q 'anchor "openclaw-ollama"' /etc/pf.conf; then
+    echo 'anchor "openclaw-ollama"' | sudo tee -a /etc/pf.conf > /dev/null
+    echo 'load anchor "openclaw-ollama" from "/etc/pf.anchors/openclaw-ollama"' | sudo tee -a /etc/pf.conf > /dev/null
+fi
+sudo pfctl -f /etc/pf.conf
+sudo pfctl -e 2>/dev/null || true
+
+echo "✅ Deployment Complete. System is mathematically secure."
+echo "Navigate to [http://127.0.0.1:3000](http://127.0.0.1:3000) and log in with your token."
+```

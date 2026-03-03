@@ -101,7 +101,7 @@ As autonomous agents ingest external data, they become highly susceptible to Ind
 
 * The architecture MUST enforce a mandatory middleware scanning layer utilizing the `indirect-prompt-injection` and `prompt-guard` plugins.  
 * This pipeline MUST execute synchronous regex pattern matching against known instruction-overrides prior to processing the payload in the primary LLM.  
-* For advanced obfuscation detection, the system SHOULD leverage the MELON (Masked re-Execution and TooL comparisON) defense framework, triggering a security halt if masked parallel executions exhibit identical malicious behaviors.  
+* For advanced obfuscation detection, the system SHOULD leverage the MELON (Masked re-Execution and TooL comparisON) defense framework, triggering a security halt if masked parallel executions exhibit identical malicious behaviors. **⚠️ Note: MELON is not present in the official OpenClaw v2026.2.26 documentation. This is a research/future consideration — treat as aspirational until a concrete plugin or configuration reference is available from upstream.**  
 * Data Loss Prevention (DLP) MUST be enforced by setting the `tools.redactOutput` configuration to `true` to scrub Personally Identifiable Information (PII) from raw tool results before the transcript is committed to the local `MEMORY.md` or JSONL logs.  
 * Recognizing the inherent brittleness of regex against adversarial LLM obfuscation (e.g., base64 encoding or spacing out API keys), the architecture MUST implement a secondary semantic or entropy-based scanning layer to reliably intercept exfiltrated cryptographic material.
 

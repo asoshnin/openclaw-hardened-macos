@@ -9,14 +9,14 @@ set -euo pipefail
 STAGING_DIR="$HOME/.openclaw/staging"
 ENV_FILE="$HOME/.openclaw/.env"
 CERT_FILE="$STAGING_DIR/APPROVAL_CERTIFICATE.json"
-REPO_URL="[https://github.com/asoshnin/openclaw-hardened-macos.git](https://github.com/asoshnin/openclaw-hardened-macos.git)"
+REPO_URL="github.com/asoshnin/openclaw-hardened-macos.git"  # F-030: plain URL, no markdown syntax
 STATE_FILE="$HOME/.openclaw/.latest_processed_release"
 
 echo "🔄 Initializing Zero-Trust Update Pipeline..."
 
 # 1. Fetch Latest OpenClaw Release
 echo "📡 Polling OpenClaw GitHub repository..."
-LATEST_RELEASE_DATA=$(curl -sL [https://api.github.com/repos/openclaw/openclaw/releases/latest](https://api.github.com/repos/openclaw/openclaw/releases/latest))
+LATEST_RELEASE_DATA=$(curl -sL https://api.github.com/repos/openclaw/openclaw/releases/latest)
 LATEST_VERSION=$(echo "$LATEST_RELEASE_DATA" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$LATEST_VERSION" ]; then
@@ -37,8 +37,8 @@ rm -rf "$STAGING_DIR"
 mkdir -m 700 "$STAGING_DIR"
 git clone -q "$REPO_URL" "$STAGING_DIR"
 
-# Write release notes to staging for Agent 1 to read
-echo "$LATEST_RELEASE_DATA" | grep '"body":' > "$STAGING_DIR/LATEST_RELEASE_NOTES.md"
+# F-039: Use jq -r to decode JSON escape sequences into proper Markdown
+echo "$LATEST_RELEASE_DATA" | jq -r '.body' > "$STAGING_DIR/LATEST_RELEASE_NOTES.md"
 
 # 4. Invoke Agent 1: The Architect
 echo "🏗️ Invoking Architect Agent in isolated sandbox..."

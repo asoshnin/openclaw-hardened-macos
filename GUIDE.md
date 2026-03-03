@@ -571,7 +571,7 @@ with open(path, 'w') as f:
 " <<< "$AUTH_TOKEN"
 
 # 4. Lock the files: Read-only for you, no access for anyone else
-chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/openclaw.json
 chmod 600 ~/.openclaw/.env
 echo "✅ Hardened configuration written to ~/.openclaw/openclaw.json"
 )
@@ -592,7 +592,7 @@ with open('$HOME/.openclaw/openclaw.json') as f:
 print('Gateway host:', c['gateway']['host'])
 print('Gateway port:', c['gateway']['port'])
 print('Token length:', len(c['gateway']['auth']['token']), 'chars')
-print('Default model:', c['agents']['defaults']['model']['name'])
+print('Default model:', c['agents']['defaults']['model']['primary'])
 "
 ```
 
@@ -600,23 +600,18 @@ print('Default model:', c['agents']['defaults']['model']['name'])
 
 To maintain the **Zero-Trust Mandate**, we will explicitly disable network discovery protocols (Bonjour/mDNS) before starting the gateway, preventing it from announcing its presence on your local Wi-Fi.
 
-### **1\. Set the Gateway Mode & Disable Cloud Memory Search**  {#1.-set-the-gateway-mode-&-disable-cloud-memory-search}
+### **1. Set the Gateway Mode & Disable Cloud Memory Search**  {#1.-set-the-gateway-mode-&-disable-cloud-memory-search}
 
-Because we locked the configuration file to 400 (read-only) in Step 9.2, you must temporarily unlock it to allow the OpenClaw CLI to apply these settings, then immediately re-lock it.
+Because we locked the configuration file to 600 (read-only) in Step 9.2, the OpenClaw CLI can apply these settings directly without needing to unlock/re-lock.
 
 ```shell
-# Unlock
-chmod 600 ~/.openclaw/openclaw.json
-
-# Apply strict local routing
-openclaw config set gateway.mode local
+# Apply strict local routing (gateway.bind is the correct v2026.2.26 config key)
+# Note: 'loopback' is also the default; this line makes the intent explicit.
+openclaw config set gateway.bind loopback
 openclaw config set agents.defaults.memorySearch.enabled false
-
-# Re-lock (Zero-Trust)
-chmod 400 ~/.openclaw/openclaw.json
 ```
 
-### **3\. Install and Start the Daemon** {#3.-install-and-start-the-daemon}
+### **2. Install and Start the Daemon** {#2.-install-and-start-the-daemon}
 
 Now that the configuration is valid and fully hardened for local-only use, the daemon will finally allow itself to be installed and started:
 
@@ -726,7 +721,7 @@ sudo pfctl -a openclaw-ollama -s rules
 Now that the gateway is fully configured and all local network modes are set, we must lock the configuration file to make it strictly read-only. This ensures absolute immutability; neither accidental commands nor malicious scripts can alter your AI environment variables.
 
 ```
-chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/openclaw.json
 ```
 
 # **11\. Step 7 — End-to-End Verification** {#11.-step-7-—-end-to-end-verification}
@@ -987,7 +982,7 @@ Updates to system packages or npm binaries can sometimes reset file permissions 
 1. **Enforce Configuration Immutability:** Ensure package managers did not alter your strict read-only files.
 
 ```shell
-chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/openclaw.json
 chmod 600 ~/.openclaw/.env
 ```
 
@@ -1031,7 +1026,7 @@ jq --arg t "$AUTH_TOKEN_NEW" '.gateway.auth.token = $t' \
 mv -f ~/.openclaw/openclaw.json.tmp ~/.openclaw/openclaw.json
 
 # Re-lock for Configuration Immutability
-chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/openclaw.json
 )
 # AUTH_TOKEN_NEW is naturally wiped from the environment as the subshell closes
 
@@ -1344,7 +1339,7 @@ find ~/.openclaw -mtime -1 -ls
 | :---- | :---- |
 | **IPv6 loopback** | Services may bind to `::1` (IPv6 loopback). Commands like `lsof` show this as `[::1]:port`. Both `127.0.0.1` (IPv4) and `::1` (IPv6) are loopback; the pf rules above cover both. |
 | **Service manager conflicts** | Do not run `brew services start ollama` AND the custom LaunchAgent simultaneously. Choose one method. |
-| **The "Unlock-Modify-Lock" Workflow** | Because your configuration is locked to `400` (Zero-Trust), standard OpenClaw commands like `openclaw doctor --fix`, `openclaw configure`, or `openclaw config set` will fail with permission errors. You must run `chmod 600 ~/.openclaw/openclaw.json` before running configuration commands, and `chmod 400 ~/.openclaw/openclaw.json` immediately after. |
+| **Configuration file permissions** | `openclaw.json` uses `chmod 600` (user read/write). This allows `openclaw config set`, `openclaw configure`, and `openclaw doctor --fix` to work normally. Other OS users cannot read the file. |
 | **OpenClaw subcommands**  | CLI syntax varies by version. Always run `openclaw --help` before scripting specific commands. |
 | **Model availability** | `ollama search <model>` verifies a model exists in Ollama's registry before pulling. |
 | **Disk space monitoring** | Monitor `df -h ~` regularly, especially after pulling large models. Remove old models with `ollama rm <model>` if space is constrained. |
@@ -1790,7 +1785,7 @@ with open(path, 'w') as f:
   json.dump(config, f, indent=2)
 " <<< "$AUTH_TOKEN"
 
-chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/openclaw.json
 chmod 600 ~/.openclaw/.env
 
 echo "\n================================================"

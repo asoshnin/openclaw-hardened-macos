@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.openclaw.pipeline-trigger.plist
+  OpenClaw Zero-Trust Update Pipeline — Daily Trigger (F-027 remediation)
+
+  INSTALLATION:
+    cp com.openclaw.pipeline-trigger.plist ~/Library/LaunchAgents/
+    chmod 600 ~/Library/LaunchAgents/com.openclaw.pipeline-trigger.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.openclaw.pipeline-trigger.plist
+
+  TO VERIFY:
+    launchctl print gui/$(id -u)/com.openclaw.pipeline-trigger
+
+  TO UNLOAD:
+    launchctl bootout gui/$(id -u)/com.openclaw.pipeline-trigger
+
+  NOTE: Replace /Users/YOUR_USERNAME with your actual home directory path.
+  $HOME is NOT expanded by launchd in XML plist files.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.openclaw.pipeline-trigger</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/YOUR_USERNAME/.openclaw/scripts/pipeline-trigger.sh</string>
+    </array>
+
+    <!-- Run once daily at 08:00 local time -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Do NOT run at load — only on schedule -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Keep alive is inappropriate for a one-shot pipeline job -->
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- Hardcoded paths for launchd compatibility — launchd does NOT expand $HOME -->
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USERNAME/Library/Logs/openclaw/pipeline-trigger.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USERNAME/Library/Logs/openclaw/pipeline-trigger.stderr.log</string>
+
+    <!-- Ensure log directory exists before loading this plist:
+         mkdir -p ~/Library/Logs/openclaw && chmod 700 ~/Library/Logs/openclaw -->
+
+    <!-- Environment variables — pass the .env file path; the script sources it internally -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>OPENCLAW_ENV_FILE</key>
+        <string>/Users/YOUR_USERNAME/.openclaw/.env</string>
+    </dict>
+</dict>
+</plist>

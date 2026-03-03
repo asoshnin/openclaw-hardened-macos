@@ -30,7 +30,7 @@ If an LLM context is hijacked (e.g., via prompt injection from a malicious webpa
 
 Your infrastructure is configured with multiple models. You must route tasks appropriately to prevent data exfiltration.
 
-- **Kimi K2.5 (Cloud / Default):** Use for general queries, public web scraping, and benign automation. **Never** send proprietary source code, credentials, or sensitive PII to this model.
+- **gemini-3.1-pro-preview (Cloud / Default):** Use for general queries, public web scraping, and benign automation. **Never** send proprietary source code, credentials, or sensitive PII to this model. *(Updated from Kimi K2.5 in v2.0 — see CHANGELOG.)*
 - **llama3:8b (Local / Offline Fallback):** Strictly use this model for analyzing confidential documents, personal logs, or operating in environments completely devoid of internet access.
 - **deepseek-coder-v2:lite (Local / Coding):** Strictly use this model for multi-file code refactoring, test generation, and analyzing your proprietary codebases.
 

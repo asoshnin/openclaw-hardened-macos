@@ -47,6 +47,23 @@ This document outlines the threat model for the local deployment of OpenClaw and
 The following threats are acknowledged but considered outside the scope of this specific hardening guide:
 
 1.  **Root-Level Malware:** If a system is compromised by malware executing with `sudo` or `root` privileges, all local mitigations (including `pf` rules and file permissions) can be bypassed.
-2.  **Physical Device Theft:** Protection against an adversary with physical possession of the Mac relies entirely on macOS FileVault (Full Disk Encryption) and strong user passwords.
+2.  **Physical Device Theft:** Protection against an adversary with physical possession of the Mac relies entirely on macOS FileVault (Full Disk Encryption) and strong user passwords. **FileVault MUST be enabled — without it, all POSIX permission controls are bypassable via Recovery Mode.**
 3.  **Supply Chain Zero-Days:** This guide relies on fetching the correct source code and binaries. While we recommend verifying Git tags, a zero-day vulnerability inside the OpenClaw or Ollama binaries themselves is an accepted risk.
 4.  **Hardware-Level Side Channels:** Speculative execution attacks targeting the Apple Silicon unified memory to extract LLM weights or tokens.
+5.  **Unauthenticated Ollama API (Local SSRF):** The Ollama inference API at `127.0.0.1:11434` has no authentication. Any process running as the same macOS user can call it without credentials (the OpenClaw gateway is authenticated; Ollama itself is not). Accepted risk given loopback-only binding — exploitation requires local code execution by the same user (already a privileged position). For high-sensitivity deployments, consider placing a reverse proxy with basic auth in front of Ollama.
+6.  **App Nap / Power Management:** macOS may suspend the OpenClaw LaunchAgent during long idle periods, silently taking the authentication gateway offline. Use `caffeinate` for long-running jobs (see GUIDE §11c). Accepted operational risk for single-user local deployments.
+
+---
+
+## 4. Threats Added in v2.0 (CI/CD Pipeline Attack Surface)
+
+The v2.0 ChatOps update pipeline (`UPDATE_WORKFLOW.md`) introduces the following additional attack surface:
+
+### Threat 5: Supply Chain via CI/CD Update Pipeline
+**Description:** The `pipeline-trigger.sh` orchestrator fetches public release data from `api.github.com`. If the OpenClaw GitHub account is compromised or a malicious release is published, the attacker-controlled release `body` field is written to `LATEST_RELEASE_NOTES.md` and ingested by the sandboxed Architect Agent. Even with `network: "none"` inside the sandbox, the malicious content is already inside the trust boundary and may attempt indirect prompt injection against the Architect Agent.
+**Risk Level:** High
+**Mitigations:**
+* **Sandboxing:** The Architect operates in a network-isolated Docker sandbox, limiting blast radius.
+* **Red Team Gate:** Agent 2 independently audits all drafted changes and produces a hash-verified `APPROVAL_CERTIFICATE.json`.
+* **HITL Deployment:** Human authorization is required before any changes reach the main repository.
+* **Recommended hardening:** Verify GPG signatures on official releases before ingestion. Consider adding a content hash check of `LATEST_RELEASE_NOTES.md` before feeding it to the Architect Agent.

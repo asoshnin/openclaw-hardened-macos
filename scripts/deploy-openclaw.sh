@@ -1,7 +1,8 @@
 #!/bin/zsh
 # OpenClaw 2026.2.26 Hardened Deployment Script
 # Architecture: Local Ollama + Cloud Gemini Fallback
-set -e
+# Remediated: RED TEAM audit 2026-03-03
+set -euo pipefail
 
 echo "🦞 Starting Zero-Trust OpenClaw Deployment..."
 
@@ -12,9 +13,13 @@ echo "\n"
 # 2. Setup Ollama LaunchAgent (Loopback Only)
 echo "🔒 Securing Ollama binding..."
 mkdir -p ~/Library/Logs/Ollama
+
+# Resolve actual home directory for plist (launchd does not expand $HOME in XML)
+REAL_HOME=$(eval echo ~)
+
 tee ~/Library/LaunchAgents/com.ollama.serve.plist > /dev/null <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "[http://www.apple.com/DTDs/PropertyList-1.0.dtd](http://www.apple.com/DTDs/PropertyList-1.0.dtd)">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
@@ -34,9 +39,9 @@ tee ~/Library/LaunchAgents/com.ollama.serve.plist > /dev/null <<EOF
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>$HOME/Library/Logs/Ollama/ollama.stdout.log</string>
+    <string>${REAL_HOME}/Library/Logs/Ollama/ollama.stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>$HOME/Library/Logs/Ollama/ollama.stderr.log</string>
+    <string>${REAL_HOME}/Library/Logs/Ollama/ollama.stderr.log</string>
 </dict>
 </plist>
 EOF
@@ -56,16 +61,23 @@ echo "⚙️ Writing OpenClaw configuration..."
 umask 077
 mkdir -p ~/.openclaw
 AUTH_TOKEN=$(openssl rand -hex 32)
+
+# Store token in .env — NOT in openclaw.json (per BASELINE §4 mandate)
 echo "GEMINI_API_KEY=$GEMINI_KEY" > ~/.openclaw/.env
+echo "OPENCLAW_GATEWAY_TOKEN=$AUTH_TOKEN" >> ~/.openclaw/.env
+chmod 600 ~/.openclaw/.env
 
 python3 -c "
-import json, os, sys
+import json, os
 config = {
   'gateway': {
     'host': '127.0.0.1',
-    'port': 3000,
-    'mode': 'local',
-    'auth': { 'token': sys.stdin.read().strip() }
+    'port': 3000,  # Intentional non-default (official default: 18789). Must match pf rules.
+    'bind': 'loopback',
+    'auth': { 'token': '\${OPENCLAW_GATEWAY_TOKEN}' }  # Resolved from .env at runtime
+  },
+  'discovery': {
+    'mdns': { 'mode': 'off' }  # Disable mDNS/Bonjour network discovery (Zero-Trust)
   },
   'tools': {
     'profile': 'minimal',
@@ -74,21 +86,21 @@ config = {
   },
   'agents': {
     'defaults': {
-      'model': 'google/gemini-3.1-pro-preview',
+      'model': { 'primary': 'google/gemini-3.1-pro-preview' },
       'memorySearch': {'enabled': False}
     }
   },
   'models': {
     'providers': {
       'ollama': {
-        'baseUrl': '[http://127.0.0.1:11434](http://127.0.0.1:11434)',
+        'baseUrl': 'http://127.0.0.1:11434',
         'models': [
           {'name': 'llama3:8b', 'id': 'llama3:8b'},
           {'name': 'deepseek-coder-v2:lite', 'id': 'deepseek-coder-v2:lite'}
         ]
       },
       'google': {
-        'baseUrl': '[https://generativelanguage.googleapis.com/v1beta](https://generativelanguage.googleapis.com/v1beta)',
+        'baseUrl': 'https://generativelanguage.googleapis.com/v1beta',
         'models': [
           {'name': 'gemini-3.1-pro-preview', 'id': 'gemini-3.1-pro-preview'}
         ]
@@ -99,14 +111,16 @@ config = {
 path = os.path.expanduser('~/.openclaw/openclaw.json')
 with open(path, 'w') as f:
   json.dump(config, f, indent=2)
-" <<< "$AUTH_TOKEN"
+"
 
-chmod 400 ~/.openclaw/openclaw.json
-chmod 600 ~/.openclaw/.env
+# Set correct permission: 600 (user read/write) per official docs
+chmod 600 ~/.openclaw/openclaw.json
 
-echo "\n================================================"
-echo "🔑 YOUR UI ACCESS TOKEN IS: $AUTH_TOKEN"
-echo "================================================\n"
+# Token is stored in .env — retrieve it there, do NOT print to stdout
+echo ""
+echo "✅ Token written to ~/.openclaw/.env"
+echo "   Retrieve with: grep OPENCLAW_GATEWAY_TOKEN ~/.openclaw/.env"
+echo ""
 )
 
 # 5. Start OpenClaw
@@ -118,6 +132,8 @@ sleep 3
 # 6. Apply pf Firewall Shield
 echo "🛡️ Applying pf Firewall Anchor (requires sudo)..."
 sudo tee /etc/pf.anchors/openclaw-ollama > /dev/null <<'EOF'
+# OpenClaw Zero-Trust pf anchor
+# Port 3000: intentional non-default (official default: 18789). If you change gateway.port, update these rules.
 pass in quick on lo0 proto tcp from 127.0.0.1 to 127.0.0.1 port { 3000, 11434 }
 pass in quick on lo0 proto tcp from ::1 to ::1 port { 3000, 11434 }
 block in quick proto tcp from any to any port { 3000, 11434 }
@@ -127,8 +143,15 @@ if ! grep -q 'anchor "openclaw-ollama"' /etc/pf.conf; then
     echo 'anchor "openclaw-ollama"' | sudo tee -a /etc/pf.conf > /dev/null
     echo 'load anchor "openclaw-ollama" from "/etc/pf.anchors/openclaw-ollama"' | sudo tee -a /etc/pf.conf > /dev/null
 fi
+
+# Validate pf syntax BEFORE loading (F-014: prevent silent firewall disable on malformed conf)
+if sudo pfctl -vnf /etc/pf.conf 2>&1 | grep -q "syntax error"; then
+    echo "❌ CRITICAL: pf.conf syntax error detected. Aborting to prevent firewall disruption."
+    exit 1
+fi
+
 sudo pfctl -f /etc/pf.conf
 sudo pfctl -e 2>/dev/null || true
 
-echo "✅ Deployment Complete. System is mathematically secure."
-echo "Navigate to [http://127.0.0.1:3000](http://127.0.0.1:3000) and log in with your token."
+echo "✅ Deployment Complete."
+echo "Navigate to http://127.0.0.1:3000 and enter your token (see ~/.openclaw/.env)."

@@ -1,7 +1,11 @@
 # RED TEAM AUDIT REPORT
+
 ## Repository: `openclaw-hardened-macos`
+
 ## Target Version: OpenClaw v2026.2.26
+
 ## Audit Date: 2026-03-03
+
 ## Classification: CONFIDENTIAL — INTERNAL USE ONLY
 
 ---
@@ -82,6 +86,7 @@ Most critically: the **default gateway port** the guide hardens (`3000`) differs
 
 **Evidence:**
 > `GUIDE.md` §9.2 Python config block:
+>
 > ```python
 > 'agents': {
 >   'defaults': {
@@ -89,20 +94,25 @@ Most critically: the **default gateway port** the guide hardens (`3000`) differs
 >   }
 > }
 > ```
+>
 > `token-generator.sh` line 56: `"model": "google/gemini-3.1-pro-preview",`
 
 **Analysis:** The official configuration reference (`docs.openclaw.ai/gateway/configuration` — "Choose and configure models") shows the correct schema:
+
 ```json
 { "agents": { "defaults": { "model": { "primary": "anthropic/claude-sonnet-4-5", "fallbacks": ["openai/gpt-5.2"] } } } }
 ```
+
 The model field is an **object** containing `primary` and optional `fallbacks`, not a bare string. A user who follows the guide will produce a config that the Gateway's strict JSON schema validator will likely reject on boot, triggering diagnostic-only mode.
 
 **Official Reference:** `https://docs.openclaw.ai/gateway/configuration#common-tasks` — Model config schema example
 
 **Recommendation:** Update `agents.defaults.model` in all configs to the object form:
+
 ```json
 "agents": { "defaults": { "model": { "primary": "google/gemini-3.1-pro-preview" } } }
 ```
+
 Also update `GUIDE.md` §9.3's verification script which reads `c['agents']['defaults']['model']['name']` — this key is also wrong; the correct key is `primary`.
 
 ---
@@ -138,9 +148,11 @@ Also update `GUIDE.md` §9.3's verification script which reads `c['agents']['def
 
 **Evidence:**
 > `GUIDE.md` §9.3:
+>
 > ```python
 > print('Default model:', c['agents']['defaults']['model']['name'])
 > ```
+>
 > But §9.2 writes: `'model': 'google/gemini-3.1-pro-preview'` (a string)
 
 **Analysis:** This is a direct runtime error. A string does not have a `['name']` key. The verification script that users are told to run as a quality gate will crash with `TypeError: string indices must be integers`. This undermines user confidence and leaves the verification step non-functional.
@@ -240,6 +252,7 @@ Also update `GUIDE.md` §9.3's verification script which reads `c['agents']['def
 **Analysis:** The update command silently undoes the entire Ollama loopback-binding hardening. After `brew services restart ollama`, Ollama may re-bind to `0.0.0.0:11434` without any warning because `OLLAMA_HOST` is not set in the Homebrew-managed service environment. The `pf` firewall will block external access but this is not a safe operational assumption — the guide explicitly says not to rely on it alone.
 
 **Recommendation:** Replace `brew services restart ollama` in §13.2 with the equivalent `launchctl` cycle:
+
 ```shell
 launchctl bootout gui/$(id -u)/com.ollama.serve
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
@@ -262,11 +275,13 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
 **Evidence:**
 > `BASELINE.md` §4 (line 92): *"Cryptographic secrets, API keys, and authentication tokens MUST NOT be stored in plaintext within the `openclaw.json` configuration file."*
 > `GUIDE.md` §9.2 (line 535–537):
+>
 > ```python
 > 'auth': {
 >   'token': sys.stdin.read().strip()
 > }
 > ```
+>
 > `token-generator.sh` line 47: `"auth": { "token": "$AUTH_TOKEN_NEW" }`
 
 **Analysis:** This is a direct, irreconcilable contradiction within the same repository between its own "Constitution" (BASELINE.md) and its own "Manual" (GUIDE.md). The BASELINE uses RFC 2119 "MUST NOT", making this a CRITICAL violation by its own standard. The official docs (`docs.openclaw.ai/gateway/configuration#environment-variables`) actually provide the correct resolution: use environment variable substitution in the config: `{ "gateway": { "auth": { "token": "${OPENCLAW_GATEWAY_TOKEN}" } } }` where the actual token is read from `.env`.
@@ -287,6 +302,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
 
 **Evidence:**
 > `GUIDE.md` §9.2:
+>
 > ```
 > echo "CRITICAL: YOUR SECURE TOKEN IS: $AUTH_TOKEN"
 > echo "Save this! You will need it to authenticate."
@@ -325,6 +341,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
 
 **Evidence:**
 > `GUIDE.md` §15.4:
+>
 > ```shell
 > register_new_matrix_user -u admin_user -p <TYPE_A_SECURE_PASSWORD_HERE> -a -c homeserver.yaml
 > register_new_matrix_user -u openclaw_bot -p <TYPE_A_DIFFERENT_PASSWORD_HERE> -a -c homeserver.yaml
@@ -333,9 +350,11 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
 **Analysis:** Passing passwords via `-p` flag makes them visible in `ps aux` output and persists them in `~/.zsh_history`. This contradicts §15.5 of the same guide ("Shell History Hygiene") and violates the core credential security mandate. The guide does not instruct users to clear this from history after running the command.
 
 **Recommendation:** Use interactive password entry instead:
+
 ```shell
 register_new_matrix_user -u admin_user -a -c homeserver.yaml
 ```
+
 (The tool will prompt interactively for a password without it appearing in the process list or history.)
 
 ---
@@ -374,9 +393,11 @@ register_new_matrix_user -u admin_user -a -c homeserver.yaml
 **Official Reference:** `https://docs.openclaw.ai/gateway/security#0-4-1-mdns/bonjour-discovery-information-disclosure`
 
 **Recommendation:** Add to `openclaw.json`:
+
 ```json
 "discovery": { "mdns": { "mode": "off" } }
 ```
+
 Or set `OPENCLAW_DISABLE_BONJOUR=1` in `~/.openclaw/.env`.
 
 ---
@@ -391,6 +412,7 @@ Or set `OPENCLAW_DISABLE_BONJOUR=1` in `~/.openclaw/.env`.
 
 **Evidence:**
 > `GUIDE.md` lines 1309–1316:
+>
 > ```
 > 1. **Halt Execution Immediately:**
 > ```shell
@@ -399,6 +421,7 @@ Or set `OPENCLAW_DISABLE_BONJOUR=1` in `~/.openclaw/.env`.
 >
 > 2. **Review for Persistence:** Malicious shell executions often attempt...
 > ```
+>
 > (No closing ` ``` ` before Step 2)
 
 **Analysis:** The missing closing fence means anyone who copies the "Halt" block to their terminal will receive Step 2's prose text as part of the shell command, causing a parse error at the worst possible moment — during an active incident response.
@@ -479,12 +502,14 @@ Or set `OPENCLAW_DISABLE_BONJOUR=1` in `~/.openclaw/.env`.
 
 **Evidence:**
 > `GUIDE.md` §9.2:
+>
 > ```json
 > "models": [
 >   {"name": "llama3:8b", "id": "llama3:8b"},
 >   {"name": "deepseek-coder-v2:lite", "id": "deepseek-coder-v2:lite"}
 > ]
 > ```
+>
 > Official docs show: model refs use `provider/model` string format directly.
 
 **Analysis:** The official docs use `provider/model` as first-class string references (e.g., `anthropic/claude-sonnet-4-5`). The nested `{name, id}` object arrays inside a `models` list per-provider is a custom schema that is not documented in the v2026.2.26 configuration reference. This may be correct for an Ollama local-provider integration, but it requires explicit verification and documentation of the Ollama provider schema.
@@ -656,6 +681,7 @@ Or set `OPENCLAW_DISABLE_BONJOUR=1` in `~/.openclaw/.env`.
 
 **Evidence:**
 > `GUIDE.md` §6.3:
+>
 > ```xml
 > <key>StandardOutPath</key>
 > <string>$HOME/Library/Logs/Ollama/ollama.stdout.log</string>
@@ -664,9 +690,11 @@ Or set `OPENCLAW_DISABLE_BONJOUR=1` in `~/.openclaw/.env`.
 **Analysis:** This is a well-known macOS launchd gotcha. `$HOME` is not expanded by launchd XML parsing. The logging paths will resolve to the literal string `$HOME/Library/...`. Ollama will fail to write logs, and the user will have no operational visibility into whether the daemon is running correctly. The correct approach is to use tilde `~`, which launchd DOES expand.
 
 **Recommendation:** Replace `$HOME` with a hardcoded absolute path (safest — universally guaranteed to resolve correctly across all plist key types):
+
 ```xml
 <string>/Users/YOUR_USERNAME/Library/Logs/Ollama/ollama.stdout.log</string>
 ```
+
 Alternatively, tilde `~` works in `StandardOutPath` and `StandardErrorPath` specifically, but is not universally expanded across all plist keys, so hardcoding is the more portable practice. *(Note added by RED TEAM 2.)* Verify after loading: `launchctl dumpstate | grep -A2 com.ollama.serve`.
 
 ---
@@ -681,9 +709,11 @@ Alternatively, tilde `~` works in `StandardOutPath` and `StandardErrorPath` spec
 
 **Evidence:**
 > `UPDATE_WORKFLOW.md` Appendix A line 133:
+>
 > ```bash
 > REPO_URL="[github.com/asoshnin/openclaw-hardened-macos.git](https://github.com/asoshnin/openclaw-hardened-macos.git)"
 > ```
+>
 > Line 197: `git ... push "https://${REPO_URL}" "$BRANCH_NAME"`
 
 **Analysis:** The markdown link syntax `[text](url)` is interpolated literally into the `git push` remote URL, producing an invalid URL. The push command will fail with a remote parse error. `pipeline-trigger.sh` line 236 has the identical issue.
@@ -702,15 +732,18 @@ Alternatively, tilde `~` works in `StandardOutPath` and `StandardErrorPath` spec
 
 **Evidence:**
 > `deploy-staged-update.sh` lines 159–167:
+>
 > ```bash
 > APPROVED_HASH=$(grep -o '"hash": *"[^"]*"' "$CERT_FILE" | cut -d'"' -f4)
 > if [ "$USER_HASH" != "$APPROVED_HASH" ]; then exit 1; fi
 > ```
+>
 > There is no `sha256sum` re-computation of the staging directory files.
 
 **Analysis:** The script verifies that the user-supplied hash matches the stored cert hash only. It does NOT verify that the current files in `$STAGING_DIR` still produce that hash. An attacker who modifies the staged Markdown files but leaves `APPROVAL_CERTIFICATE.json` unchanged will bypass this check entirely. This means the entire TOCTOU protection is a false control.
 
 **Recommendation:** Add a file re-hash step before committing:
+
 ```bash
 CURRENT_HASH=$(find "$STAGING_DIR" -type f -name '*.md' | sort | xargs sha256sum | sha256sum | awk '{print $1}')
 if [ "$CURRENT_HASH" != "$APPROVED_HASH" ]; then
@@ -731,12 +764,14 @@ fi
 
 **Evidence:**
 > `post-install-verify.sh` lines 37–41:
+>
 > ```bash
 > if sudo pfctl -a openclaw-ollama -s rules 2>/dev/null | grep -q "127.0.0.1"; then
 >     echo "PASSED: OpenClaw pf anchor rules are loaded and populated."
 > ```
 
 **Recommendation:** Strengthen the check:
+
 ```bash
 ANCHOR_OUT=$(sudo pfctl -a openclaw-ollama -s rules 2>/dev/null)
 if echo "$ANCHOR_OUT" | grep -q "pass in quick on lo0" && echo "$ANCHOR_OUT" | grep -q "block in quick"; then
@@ -755,6 +790,7 @@ if echo "$ANCHOR_OUT" | grep -q "pass in quick on lo0" && echo "$ANCHOR_OUT" | g
 **Analysis:** A user could have a correctly-permissioned `openclaw.json` that contains `"host": "0.0.0.0"` or an empty tools deny list. The script would report a clean audit. The most security-relevant fields are never checked.
 
 **Recommendation:** Add a Python content validation block:
+
 ```bash
 python3 -c "
 import json, os
@@ -867,13 +903,15 @@ print('✅ Config content validated.')
 
 **Evidence:**
 > `pipeline-trigger.sh` line 265:
+>
 > ```bash
 > echo "$LATEST_RELEASE_DATA" | grep '"body":' > "$STAGING_DIR/LATEST_RELEASE_NOTES.md"
 > ```
 
-**Analysis:** The extracted line will be the raw JSON: `  "body": "## What's new\n- Feature A"` — with literal `\n` escape sequences, not real line breaks. The Architect Agent receives garbled input.
+**Analysis:** The extracted line will be the raw JSON: `"body": "## What's new\n- Feature A"` — with literal `\n` escape sequences, not real line breaks. The Architect Agent receives garbled input.
 
 **Recommendation:** Use `jq -r '.body'` instead:
+
 ```bash
 echo "$LATEST_RELEASE_DATA" | jq -r '.body' > "$STAGING_DIR/LATEST_RELEASE_NOTES.md"
 ```
@@ -950,6 +988,7 @@ echo "$LATEST_RELEASE_DATA" | jq -r '.body' > "$STAGING_DIR/LATEST_RELEASE_NOTES
 ## 4. Remediation Roadmap
 
 ### 🔴 Immediate (Block Release)
+
 *Exploitable vulnerabilities or critical functional breakage.*
 
 | # | Finding | Action |
@@ -964,6 +1003,7 @@ echo "$LATEST_RELEASE_DATA" | jq -r '.body' > "$STAGING_DIR/LATEST_RELEASE_NOTES
 | 8 | FINDING-029 | Fix `$HOME` non-expansion in LaunchAgent plist — use `~` |
 
 ### 🟠 Short-Term (Next Sprint)
+
 *Significant errors, security regressions, inconsistencies.*
 
 | # | Finding | Action |
@@ -1050,6 +1090,7 @@ All core findings independently verified against live `docs.openclaw.ai` v2026.2
 | Recommendation strengthened | FINDING-029 | Hardcoded absolute path is safer than tilde `~` across all plist key types |
 
 **Additional omissions noted by RED TEAM 2 (not incorporated as formal findings per scope):**
+
 - `post-install-verify.sh` lacks `set -euo pipefail` — a failed `sudo pfctl` call does not abort the script, risking misleading PASS output.
 - `CONTRIBUTING.md` was not reviewed in the original report; should be explicitly noted as reviewed-and-clear or out-of-scope.
 
@@ -1072,13 +1113,14 @@ All core findings independently verified against live `docs.openclaw.ai` v2026.2
 All 42 findings from the original report (including CRITICAL, HIGH, MEDIUM, LOW, and INFO severities) have been systematically hunted down and remediated by the engineering and verification teams. The codebase now precisely reflects the strict security hygiene and technical correctness mandated by the official OpenClaw `v2026.2.26` documentation.
 
 **Final Confirmed Fixes (Post-RT3):**
-*   `README.md` no longer lists the incorrect `chmod 400` POSIX permission.
-*   The `xattr -d com.apple.quarantine` step has been correctly added to `README.md` for `deploy-openclaw.sh`, resolving a silent failure vector (F-028).
-*   All token echo commands and stdout leaks have been successfully purged from the codebase.
-*   All file permissions correctly enforce `chmod 600` for immutability without breaking usability.
-*   The `gateway.bind loopback`, token env-var substitution, JSON content validation, and `pf` pre-flight checks are all verified operational.
 
-**Final Assessment:** The `openclaw-hardened-macos` repository has attained its stated goal. It is a professionally hardened, Zero-Trust deployment architecture. The threat model is comprehensive, the instructions are unambiguous, and the automated scripts are robust against common failure states (TOCTOU, silent firewalls, malformed plists). 
+- `README.md` no longer lists the incorrect `chmod 400` POSIX permission.
+- The `xattr -d com.apple.quarantine` step has been correctly added to `README.md` for `deploy-openclaw.sh`, resolving a silent failure vector (F-028).
+- All token echo commands and stdout leaks have been successfully purged from the codebase.
+- All file permissions correctly enforce `chmod 600` for immutability without breaking usability.
+- The `gateway.bind loopback`, token env-var substitution, JSON content validation, and `pf` pre-flight checks are all verified operational.
+
+**Final Assessment:** The `openclaw-hardened-macos` repository has attained its stated goal. It is a professionally hardened, Zero-Trust deployment architecture. The threat model is comprehensive, the instructions are unambiguous, and the automated scripts are robust against common failure states (TOCTOU, silent firewalls, malformed plists).
 
 **This version is fully signed off for production deployment.**
 

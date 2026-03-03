@@ -6,12 +6,14 @@ This document outlines the deployment procedure for instantiating your own OpenC
 
 ## 1. Deployment Instructions
 
-You can deploy this assistant using platforms that support custom instructions and Retrieval-Augmented Generation (RAG) document uploads, such as **Gemini Gems**, OpenAI Custom GPTs, or Anthropic Claude Projects. 
+You can deploy this assistant using platforms that support custom instructions and Retrieval-Augmented Generation (RAG) document uploads, such as **Gemini Gems**, OpenAI Custom GPTs, or Anthropic Claude Projects.
 
 ### Step 1: Initialize the Agent
+
 Create a new custom assistant/Gem in your chosen platform. Name it "OpenClaw SecOps Assistant".
 
 ### Step 2: Establish the RAG Boundary (Required Documents)
+
 To ensure the assistant operates under our strict Zero-Trust Mandate and understands the native macOS architecture, you must upload the following **two** specific documents to its knowledge base/files section:
 
 1. **`GUIDE.md` (or your primary OpenClaw Complete Manual):** This provides the assistant with the exact 4-Layer Security Architecture, step-by-step installation instructions, and expected baseline configuration for your environment.
@@ -20,9 +22,11 @@ To ensure the assistant operates under our strict Zero-Trust Mandate and underst
 *Note: By strictly limiting the RAG context to these two audited files, you enforce a deterministic boundary that prevents the AI from hallucinating insecure `0.0.0.0` bindings or `chmod 777` permissions often found in generic web tutorials.*
 
 ### Step 3: Implement Security Guards (Optional but Recommended)
+
 For advanced deployments, consider implementing community skills like `skillguard` and `prompt-guard` as preprocessing layers to sanitize user inputs before they hit the core assistant logic.
 
 ### Step 4: Inject the Metaprompt
+
 Copy the text in the "System Metaprompt" section below and paste it into the "Instructions", "System Prompt", or "Behavior" configuration field of your chosen platform.
 
 ---

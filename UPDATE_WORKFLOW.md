@@ -90,8 +90,8 @@ Evaluate the modified documents against these immutable laws. If ANY law is viol
 
 ### **Phase 2: Async Notification (Matrix Bridge)**
 
-4. The host script monitors `~/.openclaw/staging/` for `APPROVAL_CERTIFICATE.json`.  
-5. Upon detection, it parses the hash and dispatches an OOB message to the Matrix webhook:
+1. The host script monitors `~/.openclaw/staging/` for `APPROVAL_CERTIFICATE.json`.  
+2. Upon detection, it parses the hash and dispatches an OOB message to the Matrix webhook:
 
 ```
 🚨 SYSTEM UPDATE DRAFTED 🚨
@@ -101,7 +101,7 @@ Or execute on Desktop: ./deploy-staged-update.sh <hash>
 
 ```
 
-6. The script *terminates gracefully*, leaving the locked staging folder intact.
+1. The script *terminates gracefully*, leaving the locked staging folder intact.
 
 ### **Phase 3: Deployment Authorization (Dual-Path)**
 

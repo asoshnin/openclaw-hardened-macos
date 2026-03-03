@@ -6,8 +6,6 @@ Most OpenClaw installation guides optimize for **speed** (10 minutes to install)
 
 Following standard tutorials often leaves your local AI infrastructure vulnerable: services bound to `0.0.0.0`, unauthenticated APIs, plaintext cloud credentials, and no internal firewalling. This repository provides a professional-grade, Red-Team-audited deployment manual specifically tailored for OpenClaw `2026.2.26` and Apple Silicon.
 
-
-
 ## The 4-Layer Security Architecture
 
 Apple's Gatekeeper protects against malicious binaries, but it does **not** act as an internal network firewall. This deployment implements a true Zero-Trust architecture featuring a hybrid local (Ollama) and cloud (Google Gemini) fallback system:
@@ -19,12 +17,18 @@ Apple's Gatekeeper protects against malicious binaries, but it does **not** act 
 
 ## Documentation & Manuals
 
-### 1. Hardened Installation Guide
-The complete, step-by-step installation manual for setting up the environment. It covers the "Unlock-Modify-Lock" workflow required to manage a hardened OpenClaw instance.
+This repository is structured around a strict governance hierarchy. Start with the Baseline to understand the architecture, use the Guide to deploy it, and consult the Knowledge Base for daily operations.
+
+### 1. Foundational Security Baseline (The "Constitution")
+The declarative, machine-readable specification written with strict RFC 2119 compliance. It defines the immutable boundaries of the system, Docker sandboxing limits (`network: "none"`, resource constraints), and the official Break-Glass protocol for the agent.
+👉 **[Read the Security Baseline (BASELINE.md)](BASELINE.md)**
+
+### 2. Hardened Installation Guide (The "Manual")
+The complete, step-by-step installation manual for setting up the environment. It covers the "Unlock-Modify-Lock" workflow required to manage a hardened OpenClaw instance on Apple Silicon.
 👉 **[Read the Full Hardened Guide (GUIDE.md)](GUIDE.md)**
 
-### 2. Security Operations Knowledge Base
-A curated intelligence database containing Tiered URL trust levels, Red Team findings on Indirect Prompt Injection (IPI), and incident response protocols.
+### 3. Security Operations Knowledge Base (The "Ops & RAG DB")
+A curated intelligence database containing Tiered URL trust levels, Red Team findings on Indirect Prompt Injection (IPI), and incident response protocols. *Note: Kept strictly separated from the Baseline to prevent cognitive poisoning during LLM RAG ingestion.*
 👉 **[Read the Knowledge Base (KNOWLEDGE_BASE.md)](KNOWLEDGE_BASE.md)**
 
 ## OpenClaw SecOps Assistant

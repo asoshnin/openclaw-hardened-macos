@@ -43,7 +43,16 @@ You can deploy a specialized AI agent to assist in managing, auditing, and troub
 
 *Note: This metaprompt is optimized for Gemini GEMS and similar RAG-capable platforms. It leverages this repository's manuals as its primary source of truth.*
 
+## 🛡️ Security Audit Trail
+
+This repository undergoes periodic adversarial RED TEAM audits. All findings are documented, remediated, and signed off by independent review panels before a version is cleared for production.
+
+| Date | Version | Report | Status |
+|---|---|---|---|
+| 2026-03-03 | v2.1.0 | [RED TEAM Report](docs/audits/2026-03-03_RED_TEAM_REPORT.md) | ✅ Signed off by RED TEAM 4 |
+
 ## 🚀 Fast-Track Deployment Script
+
 
 ⚠️ **SECURITY WARNING: Never execute scripts without prior manual inspection. Review all code in the `/scripts/` directory before running it.**
 

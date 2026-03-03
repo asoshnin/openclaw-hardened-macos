@@ -31,6 +31,10 @@ The complete, step-by-step installation manual for setting up the environment. I
 A curated intelligence database containing Tiered URL trust levels, Red Team findings on Indirect Prompt Injection (IPI), and incident response protocols. *Note: Kept strictly separated from the Baseline to prevent cognitive poisoning during LLM RAG ingestion.*
 👉 **[Read the Knowledge Base (KNOWLEDGE_BASE.md)](KNOWLEDGE_BASE.md)**
 
+### 4. Automated Update Workflow (The "CI/CD Pipeline")
+Details the strict, asynchronous, multi-agent ChatOps state machine used to automatically draft, audit, and deploy Zero-Trust updates to this repository natively via Matrix or local CLI.
+👉 **[Read the Update Workflow (UPDATE_WORKFLOW.md)](UPDATE_WORKFLOW.md)**
+
 ## OpenClaw SecOps Assistant
 
 You can deploy a specialized AI agent to assist in managing, auditing, and troubleshooting your deployment. This assistant is designed to operate under a Zero-Trust mandate.

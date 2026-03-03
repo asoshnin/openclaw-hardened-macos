@@ -10,127 +10,169 @@
 
 # **TOC** {#toc}
 
----
+[**TOC	1**](#toc)
 
-[TOC	1](#toc)
+[**1\. Introduction & Security Principles	4**](#1.-introduction-&-security-principles)
 
-[1\. Introduction & Security Principles	3](#1.-introduction-&-security-principles)
+[**2\. Assumptions & Scope	4**](#2.-assumptions-&-scope)
 
-[2\. Assumptions & Scope	3](#2.-assumptions-&-scope)
+[**3\. Architecture Overview	5**](#3.-architecture-overview)
 
-[3\. Architecture Overview	3](#3.-architecture-overview)
+[**4\. Prerequisites	6**](#4.-prerequisites)
 
-[4\. Prerequisites	5](#4.-prerequisites)
+[4.1 Confirm Apple Silicon	6](#4.1-confirm-apple-silicon)
 
-[4.1 Confirm Apple Silicon	5](#4.1-confirm-apple-silicon)
+[4.2 Check Free Disk Space	6](#4.2-check-free-disk-space)
 
-[4.2 Check Free Disk Space	5](#4.2-check-free-disk-space)
+[4.3 Confirm macOS Version	6](#4.3-confirm-macos-version)
 
-[4.3 Confirm macOS Version	5](#4.3-confirm-macos-version)
+[4.4 Install Xcode Command Line Tools	6](#4.4-install-xcode-command-line-tools)
 
-[4.4 Install Xcode Command Line Tools	5](#4.4-install-xcode-command-line-tools)
+[4.5 Identify Your Shell	7](#4.5-identify-your-shell)
 
-[4.5 Identify Your Shell	6](#4.5-identify-your-shell)
+[**5\. Step 1 — Install Homebrew	7**](#5.-step-1-—-install-homebrew)
 
-[5\. Step 1 — Install Homebrew	6](#5.-step-1-—-install-homebrew)
+[**6\. Step 2 — Install & Configure Ollama	8**](#6.-step-2-—-install-&-configure-ollama)
 
-[6\. Step 2 — Install & Configure Ollama	7](#6.-step-2-—-install-&-configure-ollama)
+[6.1 Install Ollama	8](#6.1-install-ollama)
 
-[6.1 Install Ollama	7](#6.1-install-ollama)
+[6.2 Create Log Directory (Private)	8](#6.2-create-log-directory-\(private\))
 
-[6.2 Create Log Directory (Private)	7](#6.2-create-log-directory-\(private\))
+[6.3 Create LaunchAgent (Bound to Loopback)	9](#6.3-create-launchagent-\(bound-to-loopback\))
 
-[6.3 Create LaunchAgent (Bound to Loopback)	7](#6.3-create-launchagent-\(bound-to-loopback\))
+[6.4 Load and Verify	10](#6.4-load-and-verify)
 
-[6.4 Load and Verify	8](#6.4-load-and-verify)
+[**7\. Step 3 — Pull Local Models	11**](#7.-step-3-—-pull-local-models)
 
-[7\. Step 3 — Pull Local Models	10](#7.-step-3-—-pull-local-models)
+[**8\. Step 4 — Install OpenClaw	11**](#8.-step-4-—-install-openclaw)
 
-[8\. Step 4 — Install OpenClaw	10](#8.-step-4-—-install-openclaw)
+[8.1 Install Node.js Runtime	11](#8.1-install-node.js-runtime)
 
-[9\. Step 5 — Configure OpenClaw (Hardened)	11](#9.-step-5-—-configure-openclaw-\(hardened\))
+[8.2 Install OpenClaw Gateway	12](#8.2-install-openclaw-gateway)
 
-[9.1 Create Secure Config Directory	11](#9.1-create-secure-config-directory)
+[**9\. Step 5 — Configure OpenClaw (Hardened)	12**](#9.-step-5-—-configure-openclaw-\(hardened\))
 
-[9.2 Generate Auth Token and Write Config	11](#9.2-generate-auth-token-and-write-config)
+[9.1 Create Secure Config Directory	12](#9.1-create-secure-config-directory)
 
-[9.3 Verify Configuration	13](#9.3-verify-configuration)
+[9.2 Generate Auth Token and Write Config	12](#9.2-generate-auth-token-and-write-config)
 
-[9.4 Start OpenClaw	13](?tab=t.0#heading=h.85zj4xwtyj5k)
+[9.3 Verify Configuration	14](#9.3-verify-configuration)
 
-[10\. Step 6 — Firewall Hardening (pf Anchor)	14](?tab=t.0#heading=h.99g4iodefkjp)
+[9.4 Start OpenClaw & Verify Network Binding	15](#9.4-start-openclaw-&-verify-network-binding)
 
-[10.1 Create the Anchor Rules File	14](?tab=t.0#heading=h.g08llwh3bq2v)
+[1\. Set the Gateway Mode & Disable Cloud Memory Search	15](#1.-set-the-gateway-mode-&-disable-cloud-memory-search)
 
-[10.2 Register the Anchor in /etc/pf.conf	14](?tab=t.0#heading=h.odx8niuhplw4)
+[3\. Install and Start the Daemon	16](#3.-install-and-start-the-daemon)
 
-[10.3 Verify Firewall Rules	15](?tab=t.0#heading=h.sxjn9xqysbmj)
+[3\. Verify Binding (The Final Test)	16](#3.-verify-binding-\(the-final-test\))
 
-[11\. Step 7 — End-to-End Verification	15](?tab=t.0#heading=h.9hi4eitw6d2x)
+[**10\. Step 6 — Firewall Hardening (pf Anchor)	16**](#10.-step-6-—-firewall-hardening-\(pf-anchor\))
 
-[Start Using OpenClaw	16](?tab=t.0#heading=h.xr38n294maji)
+[10.1 Create the Anchor Rules File	17](#10.1-create-the-anchor-rules-file)
 
-[**12\. Privacy & Data Handling	17**](#12.-privacy-&-data-handling)
+[10.2 Safely Register the Anchor in /etc/pf.conf\*\*	17](#10.2-safely-register-the-anchor-in-/etc/pf.conf**)
 
-[13\. Maintenance & Updates	18](#13.-maintenance-&-updates)
+[10.3 Verify Firewall Rules	18](#10.3-verify-firewall-rules)
 
-[13.1 Weekly: Update Packages	18](#13.1-weekly:-update-packages)
+[10.4 Lock Configuration File (Zero-Trust)	18](#10.4-lock-configuration-file-\(zero-trust\))
 
-[13.2 Monthly: Refresh Models	19](#13.2-monthly:-refresh-models)
+[**11\. Step 7 — End-to-End Verification	19**](#11.-step-7-—-end-to-end-verification)
 
-[13.3 Monthly: Secure Configuration Backup	19](#13.3-monthly:-secure-configuration-backup)
+[**11b. Start Using OpenClaw	20**](#11b.-start-using-openclaw)
 
-[13.4 Quarterly: Credential Rotation	19](#13.4-quarterly:-credential-rotation)
+[Option A: The Web Dashboard (Recommended & Authenticated)	20](#option-a:-the-web-dashboard-\(recommended-&-authenticated\))
 
-[14\. Token Rotation	19](#14.-token-rotation)
+[Option B: Terminal CLI Chat	21](#option-b:-terminal-cli-chat)
 
-[14.1 Using jq (Recommended)	20](#14.1-using-jq-\(recommended\))
+[**11c. Handling macOS Power Management and Long Jobs	21**](#11c.-handling-macos-power-management-and-long-jobs)
 
-[14.2 If jq Is Not Available (Python)	20](#14.2-if-jq-is-not-available-\(python\))
+[Waking OpenClaw After Sleep	21](#waking-openclaw-after-sleep)
 
-[15\. Application Defense & Cognitive Security	21](#15.-application-defense-&-cognitive-security)
+[Keeping OpenClaw Awake for Long Jobs (The caffeinate Method)	22](#keeping-openclaw-awake-for-long-jobs-\(the-caffeinate-method\))
 
-[15.1 Prompt Injection Defenses	21](#15.1-prompt-injection-defenses)
+[Option A: Keep Awake Until You Cancel	22](#option-a:-keep-awake-until-you-cancel)
 
-[15.2 Operational Security: The MEMORY.md	23](#15.2-operational-security:-the-memory.md)
+[Option B: Keep Awake for a Specific Time	22](#option-b:-keep-awake-for-a-specific-time)
 
-[15.3 Advanced Credential Management	23](#15.3-advanced-credential-management)
+[**12\. Privacy & Data Handling	23**](#12.-privacy-&-data-handling)
 
-[15.4 Secure Remote Access Architecture (Matrix \+ Tailscale)	23](#15.4-secure-remote-access-architecture-\(matrix-+-tailscale\))
+[13\. Maintenance & Updates (Zero-Trust Lifecycle)	24](#13.-maintenance-&-updates-\(zero-trust-lifecycle\))
 
-[15.5 Shell History Hygiene	26](#15.5-shell-history-hygiene)
+[13.1 Updating the OpenClaw Core	24](#13.1-updating-the-openclaw-core)
 
-[15.6 Incident Response: Breach Protocol	26](#15.6-incident-response:-breach-protocol)
+[13.2 Updating the AI Inference Engine (Ollama)	24](#13.2-updating-the-ai-inference-engine-\(ollama\))
 
-[16\. Operational Notes & Known Limitations	28](#16.-operational-notes-&-known-limitations)
+[13.3 Updating Remote Access Transport (Matrix, Tailscale & Caddy)	25](#13.3-updating-remote-access-transport-\(matrix,-tailscale-&-caddy\))
 
-[17\. Uninstall & Rollback	28](#17.-uninstall-&-rollback)
+[13.4 Updating Extensions (The Matrix Plugin Patch)	25](#13.4-updating-extensions-\(the-matrix-plugin-patch\))
 
-[18\. Troubleshooting	29](#heading=h.25t6ftkd0eio)
+[13.5 Post-Update Zero-Trust State Verification	26](#13.5-post-update-zero-trust-state-verification)
 
-[Ollama fails to start	29](#ollama-fails-to-start)
+[**14\. Token Rotation	26**](#14.-token-rotation)
 
-[OpenClaw fails to start	30](#openclaw-fails-to-start)
+[14.1 Using jq (Recommended)	27](#14.1-using-jq-\(recommended\))
 
-[Services appear bound to all interfaces (\*:port)	30](#services-appear-bound-to-all-interfaces-\(*:port\))
+[14.2 If jq Is Not Available (Python)	27](#14.2-if-jq-is-not-available-\(python\))
 
-[Firewall rules not active	31](#firewall-rules-not-active)
+[**15\. Application Defense & Cognitive Security	28**](#15.-application-defense-&-cognitive-security)
 
-[19\. Security Audit Checklist	31](#19.-security-audit-checklist)
+[15.1 Prompt Injection Defenses	28](#15.1-prompt-injection-defenses)
 
-[20\. Additional Resources	32](#20.-additional-resources)
+[15.2 Operational Security: The MEMORY.md	30](#15.2-operational-security:-the-memory.md)
 
-[21\. Version History	32](#21.-version-history)
+[15.3 Advanced Credential Management	30](#15.3-advanced-credential-management)
 
-[Appendix A: Advanced — TLS Termination (Optional)	33](#appendix-a:-advanced-—-tls-termination-\(optional\))
+[15.4 Secure Remote Access Architecture (Matrix \+ Tailscale): vibecoder friendly edition	30](#15.4-secure-remote-access-architecture-\(matrix-+-tailscale\):-vibecoder-friendly-edition)
 
-[Appendix B: Multi-User Setup (Not Recommended)	34](#appendix-b:-multi-user-setup-\(not-recommended\))
+[Phase 1: The Secret Tunnel (Tailscale)	31](#phase-1:-the-secret-tunnel-\(tailscale\))
 
-[Appendix C: Monitoring & Alerting (Optional)	34](#appendix-c:-monitoring-&-alerting-\(optional\))
+[Phase 2: The Chat Server & The Bouncer (Synapse & Caddy)	31](#phase-2:-the-chat-server-&-the-bouncer-\(synapse-&-caddy\))
 
-[Note on what it does:	36](#note-on-what-it-does:)
+[Phase 3: Connect OpenClaw to the Chat	33](#phase-3:-connect-openclaw-to-the-chat)
 
-## 
+[Phase 4: Phone Setup & Cryptographic Pairing	34](#phase-4:-phone-setup-&-cryptographic-pairing)
+
+[15.5 Shell History Hygiene	35](#15.5-shell-history-hygiene)
+
+[**15.6 Incident Response: Breach Protocol	35**](#15.6-incident-response:-breach-protocol)
+
+[16\. Operational Notes & Known Limitations	37](#16.-operational-notes-&-known-limitations)
+
+[17\. Uninstall & Rollback	37](#17.-uninstall-&-rollback)
+
+[18\. Advanced Security Considerations (Out of Scope)	38](#18.-advanced-security-considerations-\(out-of-scope\))
+
+[19\. Troubleshooting	39](#19.-troubleshooting)
+
+[Ollama fails to start	39](#ollama-fails-to-start)
+
+[OpenClaw fails to start	39](#openclaw-fails-to-start)
+
+[Services appear bound to all interfaces (\*:port)	40](#services-appear-bound-to-all-interfaces-\(*:port\))
+
+[Firewall rules not active	40](#firewall-rules-not-active)
+
+[Matrix Mobile Client Cannot Connect	41](#matrix-mobile-client-cannot-connect)
+
+[20\. Security Audit Checklist	41](#20.-security-audit-checklist)
+
+[Phase 1: Architectural Validation (Required)	41](#phase-1:-architectural-validation-\(required\))
+
+[Phase 2: Application-Level Audit & Sanity Checks	41](#phase-2:-application-level-audit-&-sanity-checks)
+
+[21\. Additional Resources	42](#21.-additional-resources)
+
+[22\. Version History	43](#22.-version-history)
+
+[Appendix A: Advanced — TLS Termination (Optional)	43](#appendix-a:-advanced-—-tls-termination-\(optional\))
+
+[Appendix B: Multi-User Setup (Not Recommended)	44](#appendix-b:-multi-user-setup-\(not-recommended\))
+
+[Appendix C: Monitoring & Alerting (Optional)	44](#appendix-c:-monitoring-&-alerting-\(optional\))
+
+[Note on what it does:	46](#note-on-what-it-does:)
+
+[Appendix D: Automated Zero-Trust Deployment Script	47](#appendix-d:-automated-zero-trust-deployment-script)
 
 # **1\. Introduction & Security Principles** {#1.-introduction-&-security-principles}
 
@@ -412,7 +454,7 @@ Note on Gemini: Ollama is strictly a local inference engine for GGUF execution a
 
 OpenClaw is a Node.js application. We will use Homebrew to establish a secure runtime and the Node Package Manager (`npm`) to install the gateway.
 
-## **8.1 Install Node.js Runtime**
+## **8.1 Install Node.js Runtime** {#8.1-install-node.js-runtime}
 
 OpenClaw requires Node.js version 22 or higher. Install it securely via Homebrew to ensure it is managed within your isolated Apple Silicon path:
 
@@ -424,13 +466,13 @@ brew install node
 node -v
 ```
 
-## **8.2 Install OpenClaw Gateway**
+## **8.2 Install OpenClaw Gateway** {#8.2-install-openclaw-gateway}
 
 Install the OpenClaw binary globally using `npm`. This ensures the package is registered correctly for future updates or clean rollbacks.
 
 ```
-# Install OpenClaw globally
-npm install -g openclaw
+# Install OpenClaw globally (Strictly pinned to the audited version)
+npm install -g openclaw@2026.2.26
 
 # Verify installation and PATH registration
 openclaw --version || echo "⚠️ openclaw not found — check PATH"
@@ -554,11 +596,11 @@ print('Default model:', c['agents']['defaults']['model']['name'])
 "
 ```
 
-## **9.4 Start OpenClaw & Verify Network Binding**
+## **9.4 Start OpenClaw & Verify Network Binding** {#9.4-start-openclaw-&-verify-network-binding}
 
 To maintain the **Zero-Trust Mandate**, we will explicitly disable network discovery protocols (Bonjour/mDNS) before starting the gateway, preventing it from announcing its presence on your local Wi-Fi.
 
-### **1\. Set the Gateway Mode & Disable Cloud Memory Search** 
+### **1\. Set the Gateway Mode & Disable Cloud Memory Search**  {#1.-set-the-gateway-mode-&-disable-cloud-memory-search}
 
 Because we locked the configuration file to 400 (read-only) in Step 9.2, you must temporarily unlock it to allow the OpenClaw CLI to apply these settings, then immediately re-lock it.
 
@@ -574,7 +616,7 @@ openclaw config set agents.defaults.memorySearch.enabled false
 chmod 400 ~/.openclaw/openclaw.json
 ```
 
-### **3\. Install and Start the Daemon**
+### **3\. Install and Start the Daemon** {#3.-install-and-start-the-daemon}
 
 Now that the configuration is valid and fully hardened for local-only use, the daemon will finally allow itself to be installed and started:
 
@@ -585,7 +627,7 @@ openclaw gateway install
 openclaw daemon start
 ```
 
-### **3\. Verify Binding (The Final Test)**
+### **3\. Verify Binding (The Final Test)** {#3.-verify-binding-(the-final-test)}
 
 Once the start command completes, wait 3 seconds and run our Verification Script one final time to prove the network is secure:
 
@@ -608,11 +650,11 @@ fi
 
 ---
 
-# **10\. Step 6 — Firewall Hardening (pf Anchor)**
+# **10\. Step 6 — Firewall Hardening (pf Anchor)** {#10.-step-6-—-firewall-hardening-(pf-anchor)}
 
 **Purpose:** Even though services are configured to bind to loopback, the `pf` firewall provides a **defense-in-depth** layer. If a misconfiguration or software update causes a service to bind to all interfaces, the firewall physically drops the packets at the kernel level.
 
-## **10.1 Create the Anchor Rules File**
+## **10.1 Create the Anchor Rules File** {#10.1-create-the-anchor-rules-file}
 
 This creates the isolated ruleset for OpenClaw and Ollama.
 
@@ -634,7 +676,7 @@ ANCHOR
 * `pass in quick on lo0...`: Explicitly allows incoming traffic on the local loopback interface (`lo0`). This is necessary for the gateway to talk to Ollama and for your browser to reach the UI.  
 * `block in quick...`: A strict fallback rule. If a packet tries to reach port 3000 or 11434 from outside your machine, it is instantly dropped. The `quick` keyword ensures the firewall stops processing and drops it immediately.
 
-## **10.2 Safely Register the Anchor in `/etc/pf.conf**`**
+## **10.2 Safely Register the Anchor in `/etc/pf.conf**`** {#10.2-safely-register-the-anchor-in-/etc/pf.conf**}
 
 The anchor must be referenced in the base `pf.conf`. We will back it up, safely append the rules, and perform a strict syntax check *before* loading it into the kernel.
 
@@ -667,7 +709,7 @@ else
 fi
 ```
 
-## **10.3 Verify Firewall Rules**
+## **10.3 Verify Firewall Rules** {#10.3-verify-firewall-rules}
 
 Confirm the rules are actively loaded into the kernel's memory.
 
@@ -679,7 +721,7 @@ sudo pfctl -s Anchors | grep openclaw-ollama
 sudo pfctl -a openclaw-ollama -s rules
 ```
 
-## **10.4 Lock Configuration File (Zero-Trust)**
+## **10.4 Lock Configuration File (Zero-Trust)** {#10.4-lock-configuration-file-(zero-trust)}
 
 Now that the gateway is fully configured and all local network modes are set, we must lock the configuration file to make it strictly read-only. This ensures absolute immutability; neither accidental commands nor malicious scripts can alter your AI environment variables.
 
@@ -687,7 +729,7 @@ Now that the gateway is fully configured and all local network modes are set, we
 chmod 400 ~/.openclaw/openclaw.json
 ```
 
-# **11\. Step 7 — End-to-End Verification**
+# **11\. Step 7 — End-to-End Verification** {#11.-step-7-—-end-to-end-verification}
 
 Run this comprehensive check to confirm the full stack is operational, locked down, and physically shielded.
 
@@ -746,11 +788,11 @@ echo "============================================"
 
 ---
 
-# **11b. Start Using OpenClaw**
+# **11b. Start Using OpenClaw** {#11b.-start-using-openclaw}
 
 With the gateway daemon running securely in the background, you now have two ways to interact with your local AI agents.
 
-### **Option A: The Web Dashboard (Recommended & Authenticated)**
+### **Option A: The Web Dashboard (Recommended & Authenticated)** {#option-a:-the-web-dashboard-(recommended-&-authenticated)}
 
 OpenClaw 2026.2.26 includes a built-in graphical UI. Because we enforced strict Zero-Trust authentication, the dashboard will initially block access until you provide your cryptographic token.
 
@@ -769,7 +811,7 @@ python3 -c "import json, os; print('\n🔑 TOKEN: ' + json.load(open(os.path.exp
 open "[http://127.0.0.1:3000/?token=YOUR_TOKEN](http://127.0.0.1:3000/?token=YOUR_TOKEN)"
 ```
 
-### **Option B: Terminal CLI Chat**
+### **Option B: Terminal CLI Chat** {#option-b:-terminal-cli-chat}
 
 If you prefer to stay in the terminal, you can interact with the default agent (`google/gemini-3.1-pro-preview`) directly via the command line. **Note: This default requires an active internet connection.** The CLI automatically reads your local token, so no manual authentication is required:
 
@@ -779,11 +821,11 @@ openclaw chat
 
 *(Note: To switch models or agents, type `/help` once inside the chat interface to see the updated v2026 commands).*
 
-# **11c. Handling macOS Power Management and Long Jobs**
+# **11c. Handling macOS Power Management and Long Jobs** {#11c.-handling-macos-power-management-and-long-jobs}
 
 **Purpose:** Because OpenClaw is installed as a user-level LaunchAgent (tied to your graphical login), macOS's power management will suspend or terminate the daemon when the Mac goes to sleep or enters deep idle states. This section explains how to wake the gateway back up, and how to prevent it from sleeping during long AI agent tasks.
 
-## **Waking OpenClaw After Sleep**
+## **Waking OpenClaw After Sleep** {#waking-openclaw-after-sleep}
 
 If your Mac has been asleep for an extended period, the OpenClaw daemon may have been terminated by macOS App Nap.
 
@@ -801,13 +843,13 @@ openclaw daemon start
 
 ```
 
-## **Keeping OpenClaw Awake for Long Jobs (The `caffeinate` Method)**
+## **Keeping OpenClaw Awake for Long Jobs (The `caffeinate` Method)** {#keeping-openclaw-awake-for-long-jobs-(the-caffeinate-method)}
 
 If you are starting a massive data processing task or leaving the agent to run autonomously overnight, you must explicitly tell the macOS kernel not to sleep.
 
 Instead of downloading third-party apps, use the native macOS `caffeinate` command. This ensures your Zero-Trust environment remains strictly native.
 
-### **Option A: Keep Awake Until You Cancel**
+### **Option A: Keep Awake Until You Cancel** {#option-a:-keep-awake-until-you-cancel}
 
 Open a new terminal tab and run this command. Your Mac will not go to sleep as long as this command is running.
 
@@ -819,7 +861,7 @@ caffeinate -i -s -m
 
 *To allow your Mac to sleep normally again, go to this terminal window and press **Control \+ C**.*
 
-### **Option B: Keep Awake for a Specific Time**
+### **Option B: Keep Awake for a Specific Time** {#option-b:-keep-awake-for-a-specific-time}
 
 If you know your AI job will take about 4 hours, you can tell macOS to stay awake for exactly that long (in seconds) and then return to normal power saving.
 
@@ -858,66 +900,109 @@ ollama ps
 
 ---
 
-# **13\. Maintenance & Updates** {#13.-maintenance-&-updates}
+## **13\. Maintenance & Updates (Zero-Trust Lifecycle)** {#13.-maintenance-&-updates-(zero-trust-lifecycle)}
 
-## **13.1 Weekly: Update Packages** {#13.1-weekly:-update-packages}
+⚠️ **SECURITY WARNING:** In a Zero-Trust environment, blindly running updates can overwrite custom network bindings, alter strict file permissions, or break patched plugins. You must follow this strict, multi-layer update sequence to ensure your system remains secure and operational.
 
-**If you installed OpenClaw via the secure internal mirror:**
+### **13.1 Updating the OpenClaw Core** {#13.1-updating-the-openclaw-core}
+
+Because OpenClaw was installed securely via the Node Package Manager (`npm`) as a global binary, you **must not** attempt to update it via raw `git pull` scripts.
+
+1. **Halt the System:** Stop the daemon before modifying binaries.
 
 ```shell
-cd ~/Downloads/openclaw_src
-git pull origin main
-bash install.sh
-openclaw --version
+openclaw daemon stop
 ```
 
-*Safety Testing*: Run `git pull --dry-run` in your local mirror directory to verify that the upstream tracking branch correctly points to your secure internal repository and not a public endpoint.
-
-**If you installed Ollama via Homebrew:**
+2. **Execute the Update:** Pull a specific, verified release via `npm`. **Never use the `@latest` tag** in a Zero-Trust environment to prevent upstream supply chain poisoning.
 
 ```shell
-brew update
+# Replace 2026.3.0 with the specific version you intend to install
+npm install -g openclaw@2026.3.0
+```
+
+2. **Restart the Daemon:** 
+
+```
+openclaw daemon start
+```
+
+### **13.2 Updating the AI Inference Engine (Ollama)** {#13.2-updating-the-ai-inference-engine-(ollama)}
+
+Ollama runs as a background LaunchAgent bound to `127.0.0.1`. Updating it via Homebrew is safe, but requires a service restart.
+
+```shell
 brew upgrade ollama
-
-# Then reload the LaunchAgent (only if using custom plist from Step 2)
-launchctl bootout gui/$(id -u)/com.ollama.serve
-sleep 2
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ollama.serve.plist
-
-# Or if using brew services:
-# brew services restart ollama
+brew services restart ollama
 ```
 
-## **13.2 Monthly: Refresh Models** {#13.2-monthly:-refresh-models}
+### **13.3 Updating Remote Access Transport (Matrix, Tailscale & Caddy)** {#13.3-updating-remote-access-transport-(matrix,-tailscale-&-caddy)}
+
+To maintain the security of your E2EE tunnel and reverse proxy, you must keep the transport and application layers updated alongside OpenClaw.
 
 ```shell
-ollama pull llama3:8b --latest
-ollama pull deepseek-coder-v2:lite --latest
+# Upgrade the Matrix Synapse server, Tailscale daemon, and Caddy
+brew upgrade matrix-synapse tailscale caddy
 
-# Check disk space after pulls
-df -h ~
+# Restart the services to apply patches
+brew services restart matrix-synapse
+brew services restart caddy
 ```
 
-## **13.3 Monthly: Secure Configuration Backup** {#13.3-monthly:-secure-configuration-backup}
+*Note: Tailscale GUI app updates are managed automatically by macOS or through the Tailscale menubar icon.*
 
-Backing up your OpenClaw directory is critical, but it contains sensitive credentials and operational data. Never upload unencrypted backups to cloud storage or email them to yourself.
+### **13.4 Updating Extensions (The Matrix Plugin Patch)** {#13.4-updating-extensions-(the-matrix-plugin-patch)}
+
+Standard plugin updates will frequently overwrite the macOS Apple Silicon `package.json` fixes required for the Matrix extension. You must manually re-apply the workspace patch after every update.
+
+1. **Update the Plugin:**
 
 ```shell
-# Install GnuPG if not already present
-brew install gnupg
-
-# Create an AES256-encrypted backup archive
-# You will be prompted interactively to set a symmetric passphrase.
-tar czf - ~/.openclaw | gpg --symmetric --cipher-algo AES256 > ~/Desktop/openclaw-backup-$(date +%Y%m%d).tar.gz.gpg
+openclaw plugins update @openclaw/matrix
 ```
 
-## **13.4 Quarterly: Credential Rotation** {#13.4-quarterly:-credential-rotation}
+2. **Re-apply the Workspace Bug Patch:**
 
-Do not wait for a breach to rotate credentials. Establish a proactive 90-180 day rotation cadence for all external and internal secrets connected to your AI infrastructure:
+```shell
+cd ~/.openclaw/extensions/matrix
+sed -i '' -e 's/"workspace:\*"/"*"/g' package.json
+```
 
-* **Cloud API Keys:** Log into Google AI Studio, generate a new API key, update your \`\~/.openclaw/.env\` file, and strictly revoke the old key in the Google console.  
-* **Local Gateway Token:** Execute the `jq` token rotation script provided in Section 14 to cycle your internal `AUTH_TOKEN`.  
-* **Host Credentials:** Rotate your macOS admin password and review `~/.ssh/authorized_keys` for stale remote management keys.
+3. **Rebuild the Dependencies:**
+
+```shell
+npm install
+```
+
+4. **Prune Conflicting Bundles:**
+
+```shell
+rm -rf "$(npm root -g)/openclaw/extensions/matrix" 2>/dev/null || true
+```
+
+### **13.5 Post-Update Zero-Trust State Verification** {#13.5-post-update-zero-trust-state-verification}
+
+Updates to system packages or npm binaries can sometimes reset file permissions or inadvertently drop macOS firewall (`pf`) rules. **You must re-verify your security posture.**
+
+1. **Enforce Configuration Immutability:** Ensure package managers did not alter your strict read-only files.
+
+```shell
+chmod 400 ~/.openclaw/openclaw.json
+chmod 600 ~/.openclaw/.env
+```
+
+2. **Verify the Firewall Anchor:** Confirm that your loopback shield is still actively blocking external traffic.
+
+```shell
+sudo pfctl -a openclaw-ollama -s rules
+```
+
+*(If this returns empty, your firewall anchor dropped during a macOS update. Re-run Step 6 from the installation guide).* 3\. **Run the Automated Audit:** Execute the provided repository script to verify the entire system state.
+
+```shell
+cd ~/openclaw-hardened-macos/scripts/
+./post-install-verify.sh
+```
 
 ---
 
@@ -1044,91 +1129,160 @@ Risk **The Threat:** To be useful, OpenClaw builds a psychological and operation
 
 **The Fix:** Never paste secrets into the chat interface. Integrate a CLI-based password vault (like `1Password CLI` or `pass`). If you need OpenClaw to write a script that requires a secret, instruct it to use the vault's CLI command to fetch the credential at runtime, rather than providing the credential in the prompt. *Example secure prompt:* "Write a python script to connect to my database. Fetch the password dynamically using `op read op://Private/Database/password`."
 
-## **15.4 Secure Remote Access Architecture (Matrix \+ Tailscale)** {#15.4-secure-remote-access-architecture-(matrix-+-tailscale)}
+## **15.4 Secure Remote Access Architecture (Matrix \+ Tailscale): vibecoder friendly edition** {#15.4-secure-remote-access-architecture-(matrix-+-tailscale):-vibecoder-friendly-edition}
 
-**The Threat:** The appeal of an AI assistant is querying it from your phone while away from your Mac. However, routing OpenClaw through Telegram, Discord, or Slack exposes all of your plaintext conversations to those corporate bot APIs. Furthermore, exposing an OpenClaw webhook directly to the public internet via port forwarding is a critical risk.
+Want to text your local AI from your iPhone while you're at the grocery store, without opening your Mac to the public internet? We are going to build a private, encrypted tunnel.
 
-**The Fix:** Combine an overlay network with End-to-End Encryption (E2EE).
+Here is how the magic works:
 
-**1\. The Transport Layer (Tailscale)**  
-Create a secure, WireGuard-backed Mesh VPN so your Mac's OpenClaw port is only accessible to authenticated devices. No router ports are opened.
+* **Tailscale** creates a secret VPN tunnel between your phone and your Mac.  
+* **Matrix Synapse** is your private chat server running on the Mac.  
+* **Caddy** is an automatic "bouncer" that gives your chat server the HTTPS padlock so your iPhone doesn't block the connection.
+
+### **Phase 1: The Secret Tunnel (Tailscale)** {#phase-1:-the-secret-tunnel-(tailscale)}
+
+First, we set up the VPN and get an official security certificate so our phone trusts the connection.
+
+1. **Install Tailscale:**
 
 ```shell
-# Install Tailscale via Homebrew
 brew install --cask tailscale
-
-# Start the daemon and authenticate via the GUI
 open -a Tailscale
+```
 
-# Once logged in, fetch your Tailscale IP (save this for the Matrix config)
+*👉 Log in via the pop-up window, then come back to the terminal.* 2\. **Get Your Magic Domain Name:** Run these commands to save your Tailscale IP and unique web address (it will look something like `mac-mini.tailabcd.ts.net`).
+
+```shell
 TAILSCALE_IP=$(tailscale ip -4)
-echo "Your Tailscale IP is: $TAILSCALE_IP"
+TAILSCALE_DOMAIN=$(tailscale status --json | grep -o '"CertDomains": *\["[^"]*"' | cut -d'"' -f4)
+echo "My Magic Domain is: $TAILSCALE_DOMAIN"
 ```
 
-**2\. The Application Layer (Matrix Synapse)**
+3. **Generate the HTTPS Certificate:**
 
-Do not use Telegram or Signal. Deploy a local Matrix homeserver bound *only* to your Tailscale IP.
-
+```shell
+sudo tailscale cert $TAILSCALE_DOMAIN
 ```
-# Install Matrix Synapse natively on macOS
-brew install matrix-synapse
 
-# Generate the base configuration
+*👉 This drops two files (`.crt` and `.key`) into your current folder. Leave them there for now.*
+
+### **Phase 2: The Chat Server & The Bouncer (Synapse & Caddy)** {#phase-2:-the-chat-server-&-the-bouncer-(synapse-&-caddy)}
+
+Now we install the chat server, lock it down to your local machine, and put Caddy in front of it to handle the encryption.
+
+1. **Install the Apps:**
+
+```shell
+brew install matrix-synapse caddy
+```
+
+2. **Create the Base Chat Config:**
+
+```shell
 cd /opt/homebrew/etc/synapse
 python3 -m synapse.app.homeserver \
- --server-name openclaw.local \
- --config-path homeserver.yaml \
- --generate-config \
- --report-stats=no
+  --server-name $TAILSCALE_DOMAIN \
+  --config-path homeserver.yaml \
+  --generate-config \
+  --report-stats=no
 ```
 
-Hardcode the bind address to your Tailscale IP to prevent local LAN exposure.
-
-```
-# Replace the default 0.0.0.0 bind with your secure Tailscale IP
-sed -i '' "s/bind_addresses: \\['0.0.0.0'\\]/bind_addresses: \\['$TAILSCALE_IP'\\]/g" /opt/homebrew/etc/synapse/homeserver.yaml
-
-# Start Synapse via Homebrew Services
-brew services start matrix-synapse
-```
-
-**3\. The OpenClaw Integration**  
-The `@openclaw/matrix` plugin currently ships with a `pnpm` workspace bug that causes standard `npm install` to fail. You must install it manually and patch the `package.json` for macOS.
+3. **Lock the Doors (Crucial Security Step):** We only want the chat server listening to inside traffic, and we don't want strangers making accounts. Run these two commands to automatically flip the switches in the config file:
 
 ```shell
-# Attempt installation (expected to partially fail)
-openclaw plugins install @openclaw/matrix
+# 1. Bind to localhost only
+sed -i '' "s/bind_addresses: \\['0.0.0.0'\\]/bind_addresses: \\['127.0.0.1'\\]/g" homeserver.yaml
 
-# Navigate to the extension directory
-cd ~/.openclaw/extensions/matrix
-
-# Fix the workspace syntax using BSD sed (macOS compatible)
-sed -i '' -e 's/"workspace:\*"/"*"/g' package.json
-
-# Complete the installation
-npm install
-
-# Remove the broken bundled duplicate to prevent plugin conflict
-rm -rf "$(npm root -g)/openclaw/extensions/matrix" 2>/dev/null || true
-
-# Verify clean installation
-openclaw plugins list | grep matrix
+# 2. Turn off open registration
+sed -i '' 's/enable_registration: true/enable_registration: false/g' homeserver.yaml
 ```
 
-**4\. Pair and Verify Cryptographic Identity**  
-By default, OpenClaw operates in a zero-trust mode and will drop all messages from unknown Matrix users. You must explicitly pair your personal Matrix account with the bot.
+4. **Create Your User Accounts:** You need an account for yourself, and an account for the AI Bot.
 
-* Open your Matrix client (e.g., Element) on your phone and send a Direct Message to your bot (e.g., `Hello`).  
-* The bot will ignore the message but generate a pairing code in your local Mac terminal or logs.  
-* Retrieve the code and approve it via the OpenClaw CLI:
+```shell
+# Make your personal account (it will ask you to type a password)
+register_new_matrix_user -u admin_user -p <TYPE_A_SECURE_PASSWORD_HERE> -a -c homeserver.yaml
+
+# Make the bot's account 
+register_new_matrix_user -u openclaw_bot -p <TYPE_A_DIFFERENT_PASSWORD_HERE> -a -c homeserver.yaml
+```
+
+5. **Tell Caddy How to Route Traffic:** We are going to create a simple text file called a `Caddyfile` that tells the bouncer where the HTTPS certificates are.
+
+```shell
+cat <<EOF > /opt/homebrew/etc/Caddyfile
+$TAILSCALE_DOMAIN {
+    tls $HOME/tailscale.crt $HOME/tailscale.key
+    reverse_proxy 127.0.0.1:8008
+}
+EOF
+```
+
+*(Note: Make sure the `tls` path matches exactly where your certificates downloaded in Phase 1\! Usually, that is your home directory).* 6\. **Start the Engines:**
+
+```shell
+brew services start matrix-synapse
+brew services start caddy
+```
+
+### **Phase 3: Connect OpenClaw to the Chat** {#phase-3:-connect-openclaw-to-the-chat}
+
+OpenClaw needs the Matrix plugin to know how to read text messages.
+
+1. **Install the Plugin:**
+
+```shell
+openclaw plugins install @openclaw/matrix
+cd ~/.openclaw/extensions/matrix
+```
+
+2. **Fix a Known Bug:** There is currently a tiny bug in the plugin's code file. This command fixes it automatically:
+
+```shell
+sed -i '' -e 's/"workspace:\*"/"*"/g' package.json
+npm install
+rm -rf "$(npm root -g)/openclaw/extensions/matrix" 2>/dev/null || true
+```
+
+3. **Give OpenClaw the Login Credentials:** OpenClaw needs to log in as `openclaw_bot`. Open your hidden `.env` file:
+
+```shell
+nano ~/.openclaw/.env
+```
+
+Add these four lines (You can get your bot's access token by logging into the Element web app once with the bot's username/password. You can find your Room ID in the Element app by going to the Chat Settings \> Advanced):
+
+```
+MATRIX_HOMESERVER_URL=https://<YOUR_TAILSCALE_DOMAIN>
+MATRIX_BOT_USERNAME=@openclaw_bot:<YOUR_TAILSCALE_DOMAIN>
+MATRIX_ACCESS_TOKEN=<YOUR_BOTS_ACCESS_TOKEN>
+MATRIX_ADMIN_ROOM_ID=<YOUR_DIRECT_CHAT_ROOM_ID>
+```
+
+Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`), then restart OpenClaw:
+
+```shell
+openclaw daemon restart
+```
+
+### **Phase 4: Phone Setup & Cryptographic Pairing** {#phase-4:-phone-setup-&-cryptographic-pairing}
+
+Everything is running. Now we connect your phone. Because OpenClaw is Zero-Trust, it will ignore you until you explicitly pair your device.
+
+1. **Turn on the VPN:** Install the Tailscale app on your iPhone and toggle it ON.  
+2. **Get the Chat App:** Download the **Element** app from the App Store.  
+3. **Log In:** \* On the Element login screen, tap "Edit Server" or "Custom Server".  
+* Enter your `https://<YOUR_TAILSCALE_DOMAIN>`.  
+* Log in using your `admin_user` username and password.  
+4. **Initiate the Handshake:** \* Start a new chat with `@openclaw_bot:<YOUR_TAILSCALE_DOMAIN>`.  
+* Send the message: "Hello". (The bot will not reply yet on your phone).  
+5. **Approve the Connection:** Look at the terminal on your Mac. OpenClaw will have printed a secret pairing code. Tell OpenClaw to accept your phone by typing:
 
 ```shell
 openclaw pairing approve matrix <YOUR_PAIRING_CODE>
 ```
 
-* **Red Team Verification:** Ask a friend (or use a secondary Matrix account) to message the bot. Verify the bot silently drops the message and does not respond, confirming that unauthenticated access is strictly blocked.
-
-**The Result:** When you message OpenClaw from your phone, the message is encrypted locally, transmitted over the WireGuard tunnel, decrypted by your local Mac Matrix server, and handed to OpenClaw.
+**Boom. You're done.** Any message you send from Element on your phone is now securely transmitted over the VPN, decrypted locally, and processed by your private AI agent.
 
 ## **15.5 Shell History Hygiene** {#15.5-shell-history-hygiene}
 
@@ -1241,7 +1395,7 @@ echo "Uninstall complete."
 
 ---
 
-## **18\. Advanced Security Considerations (Out of Scope)**
+## **18\. Advanced Security Considerations (Out of Scope)** {#18.-advanced-security-considerations-(out-of-scope)}
 
 This guide focuses on core hardening for a local, single-user setup. For more advanced threat models, consider the following:
 
@@ -1249,7 +1403,7 @@ This guide focuses on core hardening for a local, single-user setup. For more ad
 * **Runtime Security Monitoring:** For ongoing security, consider implementing system auditing (e.g., `auditd`) or integrity monitoring tools (e.g., `osquery` or `AIDE`) to detect unauthorized changes to critical files.  
 * **TLS for Localhost Traffic:** While loopback traffic is unencrypted, highly sensitive environments may want to enforce TLS for localhost connections. See **Appendix A** for configuring local reverse proxies to terminate TLS.
 
-## **19\. Troubleshooting**
+## **19\. Troubleshooting** {#19.-troubleshooting}
 
 ### **Ollama fails to start** {#ollama-fails-to-start}
 
@@ -1319,15 +1473,29 @@ grep openclaw-ollama /etc/pf.conf
 # Should show both the anchor line and the load line
 ```
 
+### **Matrix Mobile Client Cannot Connect** {#matrix-mobile-client-cannot-connect}
+
+**Verify the TLS Proxy:**
+
+```shell
+# Check if Caddy is running and bound to port 443
+lsof -iTCP:443 -sTCP:LISTEN -Pn | grep caddy
+```
+
+**Common issues:**
+
+* **Tailscale IP changed:** If your Tailscale IP/Domain changed, Caddy will fail to route traffic. Verify your `TAILSCALE_DOMAIN` against the `/opt/homebrew/etc/Caddyfile`.  
+* **Synapse not running:** Ensure Synapse is running on `127.0.0.1:8008` so Caddy has a destination to proxy to.
+
 ---
 
-## **19\. Security Audit Checklist** {#19.-security-audit-checklist}
+## **20\. Security Audit Checklist** {#20.-security-audit-checklist}
 
 Use this before considering the setup production-ready.
 
 ⚠️ **SECURITY WARNING: Do not rely solely on application-level self-audits or standard `lsof` commands.** An application cannot reliably audit its own containment, and standard port queries can return false positives from outbound connections. You must verify the architectural containment from the outside using deterministic state verification.
 
-### **Phase 1: Architectural Validation (Required)**
+### **Phase 1: Architectural Validation (Required)** {#phase-1:-architectural-validation-(required)}
 
 Run the repository's automated auditing script to mathematically verify the integrity of your 4-layer architecture (Application Bindings, Firewall Anchors, and Filesystem Permissions).
 
@@ -1337,7 +1505,7 @@ chmod +x scripts/post-install-verify.sh
 
 ```
 
-### **Phase 2: Application-Level Audit & Sanity Checks**
+### **Phase 2: Application-Level Audit & Sanity Checks** {#phase-2:-application-level-audit-&-sanity-checks}
 
 Once the architectural blast radius is secured by the script above, run OpenClaw's built-in audit to check for internal software misconfigurations and verify your operational parameters.
 
@@ -1360,7 +1528,7 @@ openclaw security audit --deep
 
 ---
 
-## **20\. Additional Resources** {#20.-additional-resources}
+## **21\. Additional Resources** {#21.-additional-resources}
 
 | Resource | Purpose |
 | :---- | :---- |
@@ -1373,11 +1541,12 @@ openclaw security audit --deep
 
 ---
 
-## **21\. Version History** {#21.-version-history}
+## **22\. Version History** {#22.-version-history}
 
 | Version | Date | Changes |
 | :---- | :---- | :---- |
-| 2.0 | 2026-03-01 | **Red team remediation:** Fixed pf anchor integration, added critical binding verification, improved token generation security, clarified service manager exclusivity, added comprehensive troubleshooting, enhanced privacy warnings. |
+| 2.0 | 2026-03-01 | Red team remediation: Fixed pf anchor integration, added critical binding verification. **Completely overhauled remote access architecture (15.4) to enforce TLS via Caddy and strictly bound Synapse to localhost.** Added comprehensive multi-agent update workflow. |
+| 1.1 | 2026-03-01 | **Red team remediation:** Fixed pf anchor integration, added critical binding verification, improved token generation security, clarified service manager exclusivity, added comprehensive troubleshooting, enhanced privacy warnings. |
 | 1.0 | 2026-02-15 | Initial release. |
 
 ---
@@ -1506,7 +1675,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.local.health-check.p
 
 ## 
 
-## **Appendix D: Automated Zero-Trust Deployment Script**
+## **Appendix D: Automated Zero-Trust Deployment Script** {#appendix-d:-automated-zero-trust-deployment-script}
 
 This script executes the entirety of this manual's deployment phases in a single pass. It requires your Gemini API key upfront and assumes you have Homebrew installed.
 
@@ -1564,6 +1733,11 @@ sleep 3
 echo "🧠 Pulling local models (this may take a while)..."
 /opt/homebrew/bin/ollama pull llama3:8b
 /opt/homebrew/bin/ollama pull deepseek-coder-v2:lite
+
+# 3.5 Install OpenClaw Runtime
+echo "📦 Installing Node.js and OpenClaw 2026.2.26..."
+brew install node
+npm install -g openclaw@2026.2.26
 
 # 4. Generate Hardened OpenClaw Config
 echo "⚙️ Writing OpenClaw configuration..."

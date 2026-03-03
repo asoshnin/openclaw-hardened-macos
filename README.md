@@ -13,7 +13,7 @@ Apple's Gatekeeper protects against malicious binaries, but it does **not** act 
 1.  **Application Layer:** Strict service bindings to `127.0.0.1` and `::1` only, managed securely via macOS `LaunchAgents`.
 2.  **Authentication & Secrets:** 256-bit secure token generation via `umask 077` subshells, and strict `.env` segregation to keep cloud API keys out of main configuration files.
 3.  **Firewall Layer:** Native macOS `pf` firewall anchors to strictly block unauthorized local access from other processes or users on the same machine.
-4.  **Configuration Immutability:** Restrictive POSIX permissions (`chmod 400/600`) on config directories to prevent configuration drift or unauthorized tampering.
+4.  **Configuration Immutability:** Restrictive POSIX permissions (`chmod 600`) on config directories to prevent configuration drift or unauthorized tampering.
 
 ## Documentation & Manuals
 
@@ -24,7 +24,7 @@ The declarative, machine-readable specification written with strict RFC 2119 com
 👉 **[Read the Security Baseline (BASELINE.md)](BASELINE.md)**
 
 ### 2. Hardened Installation Guide (The "Manual")
-The complete, step-by-step installation manual for setting up the environment. It covers the "Unlock-Modify-Lock" workflow required to manage a hardened OpenClaw instance on Apple Silicon.
+The complete, step-by-step installation manual for setting up the environment. It covers the exact permission requirements to manage a hardened OpenClaw instance on Apple Silicon.
 👉 **[Read the Full Hardened Guide (GUIDE.md)](GUIDE.md)**
 
 ### 3. Security Operations Knowledge Base (The "Ops & RAG DB")
@@ -53,4 +53,5 @@ For advanced users who already understand the Zero-Trust architecture outlined i
 ```bash
 cd scripts/
 chmod +x deploy-openclaw.sh
+xattr -d com.apple.quarantine deploy-openclaw.sh 2>/dev/null || true
 ./deploy-openclaw.sh

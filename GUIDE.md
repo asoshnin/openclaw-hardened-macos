@@ -5,7 +5,7 @@
 **Default cloud model:**  gemini-3.1-pro-preview (Google Gemini)  
 **Offline fallback:**   llama3:8b  (local)  
 **Coding tasks:**   deepseek-coder-v2:lite  (local, manual agent switch)  
-**Document version:** 2.0 — 2026-03-01
+**Document version:** 2.1.0 — 2026-03-03
 **Target audience:** macOS administrators deploying local LLM infrastructure with defense-in-depth security controls.
 
 # **TOC** {#toc}
@@ -1540,6 +1540,7 @@ openclaw security audit --deep
 
 | Version | Date | Changes |
 | :---- | :---- | :---- |
+| 2.1.0 | 2026-03-03 | **RED TEAM audit & remediation:** Full adversarial audit against OpenClaw `v2026.2.26`. 42 findings identified and remediated (8 CRITICAL, 12 HIGH, 11 MEDIUM, 7 LOW, 4 INFO). Key fixes: `chmod 600` for `openclaw.json`, env-var token injection via `.env`, corrected `agents.defaults.model` schema, `gateway.bind loopback` enforcement, `pf` pre-validation, TOCTOU re-hash. Full report: `docs/audits/2026-03-03_RED_TEAM_REPORT.md`. |
 | 2.0 | 2026-03-01 | Red team remediation: Fixed pf anchor integration, added critical binding verification. **Completely overhauled remote access architecture (15.4) to enforce TLS via Caddy and strictly bound Synapse to localhost.** Added comprehensive multi-agent update workflow. |
 | 1.1 | 2026-03-01 | **Red team remediation:** Fixed pf anchor integration, added critical binding verification, improved token generation security, clarified service manager exclusivity, added comprehensive troubleshooting, enhanced privacy warnings. |
 | 1.0 | 2026-02-15 | Initial release. |

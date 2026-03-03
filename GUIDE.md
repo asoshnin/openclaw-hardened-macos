@@ -511,18 +511,13 @@ chmod +x scripts/token-generator.sh
 (
 umask 077
 
-# 1. Generate a 256-bit high-entropy token
+# 1. Generate token and store in .env — do NOT print to terminal
 AUTH_TOKEN=$(openssl rand -hex 32)
-echo "------------------------------------------------"
-echo "CRITICAL: YOUR SECURE TOKEN IS: $AUTH_TOKEN"
-echo "Save this! You will need it to authenticate."
-echo "------------------------------------------------"
-
-# 2. Prompt for Gemini API Key securely (No shell history leak)
-read -rs "GEMINI_KEY?Enter Google Gemini API Key: "
-echo ""
 echo "GEMINI_API_KEY=$GEMINI_KEY" > ~/.openclaw/.env
-echo "✅ Secrets written to ~/.openclaw/.env"
+echo "OPENCLAW_GATEWAY_TOKEN=$AUTH_TOKEN" >> ~/.openclaw/.env
+chmod 600 ~/.openclaw/.env
+echo "✅ Token written to ~/.openclaw/.env (do not print it to the terminal)"
+echo "   Retrieve with: grep OPENCLAW_GATEWAY_TOKEN ~/.openclaw/.env"
 
 # 3. Use Python to securely assemble the validated 2026.2.26 JSON schema
 python3 -c "
@@ -533,7 +528,7 @@ config = {
     'host': '127.0.0.1',
     'port': 3000,
     'auth': {
-      'token': sys.stdin.read().strip()
+      'token': '${OPENCLAW_GATEWAY_TOKEN}'  # Resolved from ~/.openclaw/.env at runtime
     }
   },
   'tools': {
@@ -543,7 +538,7 @@ config = {
   },
   'agents': {
     'defaults': {
-      'model': 'google/gemini-3.1-pro-preview'
+      'model': { 'primary': 'google/gemini-3.1-pro-preview' }
     }
   },
   'models': {
@@ -568,9 +563,9 @@ config = {
 path = os.path.expanduser('~/.openclaw/openclaw.json')
 with open(path, 'w') as f:
   json.dump(config, f, indent=2)
-" <<< "$AUTH_TOKEN"
+"
 
-# 4. Lock the files: Read-only for you, no access for anyone else
+# 4. Set correct permissions per official docs
 chmod 600 ~/.openclaw/openclaw.json
 chmod 600 ~/.openclaw/.env
 echo "✅ Hardened configuration written to ~/.openclaw/openclaw.json"

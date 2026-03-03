@@ -24,8 +24,8 @@
     <true/>
     
     <key>StandardErrorPath</key>
-    <string>/Users/YOUR_USERNAME/Library/Logs/ollama/stderr.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/Ollama/ollama.stderr.log</string>
     <key>StandardOutPath</key>
-    <string>/Users/YOUR_USERNAME/Library/Logs/ollama/stdout.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/Ollama/ollama.stdout.log</string>
 </dict>
 </plist>

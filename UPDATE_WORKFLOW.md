@@ -285,25 +285,32 @@ echo "✅ Red Team Audit Passed. Extracting deployment hash..."
 APPROVED_HASH=$(grep -o '"hash": *"[^"]*"' "$CERT_FILE" | cut -d'"' -f4)
 
 # 7. Phase 2: Matrix Async Notification
-# Ephemerally load the Matrix Webhook URL from the locked .env file
+# Ephemerally load the native Matrix credentials from the locked .env file
 if [ ! -f "$ENV_FILE" ]; then
     echo "❌ Error: .env file missing."
     exit 1
 fi
-MATRIX_WEBHOOK=$(grep '^MATRIX_WEBHOOK=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '[:space:]' || true)
 
-if [ -n "$MATRIX_WEBHOOK" ]; then
-    echo "📱 Dispatching Matrix ChatOps notification..."
-    NOTIFICATION_BODY="🚨 **SYSTEM UPDATE DRAFTED** 🚨\nOpenClaw $LATEST_VERSION released. Red Team has approved the documentation updates.\nTo authorize, reply via Matrix: \`/deploy $APPROVED_HASH\`\nOr execute on Desktop: \`./deploy-staged-update.sh $APPROVED_HASH\`"
+MATRIX_URL=$(grep '^MATRIX_HOMESERVER_URL=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '[:space:]' || true)
+MATRIX_TOKEN=$(grep '^MATRIX_ACCESS_TOKEN=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '[:space:]' || true)
+MATRIX_ROOM=$(grep '^MATRIX_ADMIN_ROOM_ID=' "$ENV_FILE" | cut -d '=' -f2 | tr -d '[:space:]' || true)
+
+if [ -n "$MATRIX_URL" ] && [ -n "$MATRIX_TOKEN" ] && [ -n "$MATRIX_ROOM" ]; then
+    echo "📱 Dispatching native Matrix ChatOps notification..."
+    NOTIFICATION_BODY="🚨 SYSTEM UPDATE DRAFTED 🚨\nOpenClaw $LATEST_VERSION released. Red Team has approved the documentation updates.\nTo authorize, reply via Matrix: /deploy $APPROVED_HASH\nOr execute on Desktop: ./deploy-staged-update.sh $APPROVED_HASH"
     
-    curl -sX POST "$MATRIX_WEBHOOK" \
+    # Generate a unique transaction ID for the Matrix API
+    TXN_ID=$(date +%s%N)
+    
+    curl -sX PUT "${MATRIX_URL}/_matrix/client/v3/rooms/${MATRIX_ROOM}/send/m.room.message/${TXN_ID}" \
+         -H "Authorization: Bearer ${MATRIX_TOKEN}" \
          -H "Content-Type: application/json" \
-         -d "{\"body\": \"$NOTIFICATION_BODY\", \"msgtype\": \"m.text\"}" > /dev/null
+         -d "{\"msgtype\": \"m.text\", \"body\": \"$NOTIFICATION_BODY\"}" > /dev/null
     
-    # Flush memory
-    unset MATRIX_WEBHOOK
+    # Flush secrets from memory
+    unset MATRIX_URL MATRIX_TOKEN MATRIX_ROOM
 else
-    echo "⚠️ Warning: MATRIX_WEBHOOK not found in .env. Skipping mobile notification."
+    echo "⚠️ Warning: Matrix credentials (URL, TOKEN, or ROOM_ID) missing in .env. Skipping mobile notification."
 fi
 
 # 8. Finalize State

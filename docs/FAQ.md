@@ -16,8 +16,8 @@
 
 ## Privacy & Cloud Models
 
-**Q: How can I safely use cloud models like `kimi-k2.5`?**
-* When `kimi-k2.5` (cloud) is the active model, your prompts and code are transmitted directly by the OpenClaw gateway to Moonshot AI servers.
+**Q: How can I safely use cloud models like `gemini-3.1-pro-preview`?**
+* When `gemini-3.1-pro-preview` (cloud) is the active model, your prompts and code are transmitted directly by the OpenClaw gateway to Google's servers.
 * Do not send passwords, API keys, authentication tokens, proprietary source code, or PII to cloud models.
 * For sensitive work, use a local, fully offline model like `deepseek-coder-v2:lite`.
 
@@ -26,7 +26,8 @@
 **Q: How can I safely access my OpenClaw setup remotely from my phone?**
 * Exposing an OpenClaw webhook directly to the public internet via port forwarding is a critical risk.
 * Instead, combine an overlay network with End-to-End Encryption (E2EE).
-* Create a secure, WireGuard-backed Mesh VPN using Tailscale. * Deploy a local Matrix homeserver bound only to your Tailscale IP.
+* Create a secure, WireGuard-backed Mesh VPN using Tailscale. 
+* Deploy a local Matrix homeserver bound strictly to `127.0.0.1` and use Caddy as a reverse proxy to terminate TLS certificates, ensuring iOS connection compatibility.
 
 ## Troubleshooting
 
